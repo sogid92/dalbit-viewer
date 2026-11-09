@@ -19,15 +19,26 @@ python main.py [image / folder / ZIP / CBZ path]
 
 Without a path, a file picker opens. You can open a folder or an archive instead of a single image.
 
-## Build an EXE
+## Set as default app
 
-Double-click `build_exe.bat`. The result is `dist\DalbitViewer\DalbitViewer.exe`.
+To open images in Dalbit Viewer by double-clicking, register it in Windows once.
 
-## Open from Explorer
+**Option 1: Right-click a file**
 
-Run `install.bat` once. It builds the EXE and registers the file association. Use `uninstall.bat` to remove it.
+1. Right-click an image file.
+2. Choose **Open with** → **Choose another app**.
+3. If it is not listed, use **Look for another app on this PC** and select `DalbitViewer\DalbitViewer.exe`.
+4. Check **Always use this app** and confirm.
 
-Windows may still require you to pick the app once in Default apps. The association must point to `DalbitViewer.exe`, not to `main.py` or a `.bat` file.
+**Option 2: Windows Settings**
+
+1. Open **Settings** → **Apps** → **Default apps**.
+2. Search for the extension (for example `.jpg`, `.png`) and click it.
+3. Select **Dalbit Viewer** from the list.
+
+Each extension must be set separately. Supported associations: BMP, JPG, JPEG, JFIF, PNG, GIF, WebP, TIFF, AVIF, ICO, PPM, JXL, DDS, TGA, CBZ
+
+Windows does not allow an app to change the default silently, so this has to be done once manually. After that, double-clicking opens the viewer.
 
 ## Controls
 
