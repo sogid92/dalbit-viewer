@@ -62,13 +62,7 @@ Press `L` to open the viewed list. Folders and archives are recorded automatical
 
 **Run the EXE**
 
-Download `DalbitViewer-<version>-win64.zip` from [Releases](https://github.com/sogid92/dalbit-viewer/releases), extract it, and run `DalbitViewer\DalbitViewer.exe`. Keep the folder intact; the EXE will not start if it is moved out or the other files are deleted.
-
-Without an image it opens an icon start screen. It remembers the last window size and position, and starts fullscreen if you closed it in fullscreen. Cancelling the file picker keeps the app running, so you can open Settings or register the file association right away.
-
-- **Resize**: drag any edge (top, bottom, left, right) or corner. All eight directions work, like a normal Windows window. Minimum is 560×320.
-- **Move**: drag an empty part of the top bar.
-- **Fullscreen**: `Alt+Enter` or the fullscreen button in the top bar. Press again to return to the previous window size.
+Download `DalbitViewer-<version>-win64.zip` from [Releases](https://github.com/sogid92/dalbit-viewer/releases), extract it, and run `DalbitViewer\DalbitViewer.exe`.
 
 **Run from source** (Python 3.10 or newer)
 
@@ -85,35 +79,15 @@ To add **Open with Dalbit Viewer** to the right-click menu for archives and to l
 
 1. Open **Settings** in the top bar.
 2. At the bottom under **Explorer Registration**, press **Register**.
-3. The status changes to registered and you are done.
 
 Press **Remove** in the same place to undo it. The current state is shown under the buttons.
 
-Registration only works when running the EXE. Running from source (`python main.py`) shows a notice instead.
-
 **Registering does not change your default apps.** To make Dalbit Viewer the default, set it in Windows once after registering.
 
-**Option 1: Right-click a file (one extension at a time)**
+Open **Settings** → **Apps** → **Default apps** and click **Dalbit Viewer**.
+Press **Set default** to assign all supported extensions at once.
 
-1. Right-click an image file.
-2. Choose **Open with** → **Choose another app**.
-3. Select **Dalbit Viewer** from the list. If it is missing, use **Look for another app on this PC** and pick `DalbitViewer\DalbitViewer.exe`.
-4. Check **Always use this app** and confirm.
-
-**Option 2: Windows Settings (one extension at a time)**
-
-1. Open **Settings** → **Apps** → **Default apps**.
-2. Under **Choose default apps by file type**, search for the extension (for example `.jpg`, `.png`) and click it.
-3. Select **Dalbit Viewer** from the list.
-
-**Option 3: All at once (per app)**
-
-1. Open **Settings** → **Apps** → **Default apps** and click **Dalbit Viewer**.
-2. Press **Set default** to assign all supported extensions at once.
-
-**To revert**: choose another app (for example BandiView) in the same screen.
-
-Each extension must be set separately. Supported associations: BMP, JPG, JPEG, JFIF, JPE, PNG, GIF, WebP, TIFF, TIF, AVIF, ICO, PPM, PGM, PNM, JXL, DDS, TGA, CBZ, ZIP
+Supported associations: BMP, JPG, JPEG, JFIF, JPE, PNG, GIF, WebP, TIFF, TIF, AVIF, ICO, PPM, PGM, PNM, JXL, DDS, TGA, CBZ, ZIP
 
 Archives (CBZ/ZIP) only get the right-click menu entry; the default app is left unchanged, so an existing archive program keeps its association.
 
