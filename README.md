@@ -13,7 +13,7 @@
 ## 실행
 
 ```bat
-pip install Pillow
+pip install -r requirements.txt
 python main.py [이미지 / 폴더 / 압축파일 경로]
 ```
 
