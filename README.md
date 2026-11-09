@@ -2,6 +2,8 @@
   <img src="icon.png" width="128" alt="Dalbit Viewer icon">
 </p>
 
+**English:** [README.en.md](README.en.md)
+
 # 달빛뷰어 (Dalbit Viewer)
 
 이미지를 보는 시간, 방해받지 않도록.
@@ -9,8 +11,6 @@
 광고도, 설치도 필요 없습니다. UI는 시야를 가리지 않으며, 이미지를 여는 순간부터 보는 일에만 집중하세요.
 
 약 14MB의 가벼운 Windows용 이미지 뷰어.
-
-**English:** [README.en.md](README.en.md)
 
 ## 주요 특징
 
