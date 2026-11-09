@@ -1,0 +1,17 @@
+# 실행에 필요한 파일만 올린다.
+__pycache__/
+*.pyc
+
+# 빌드 산출물
+build/
+dist/
+*.spec
+
+# 실행 중 생기는 사용자 데이터 / 로그
+settings.json
+viewed_folders.json
+viewer_error.log
+
+# 로컬 도구 설정
+.serena/
+.venv/
