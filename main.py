@@ -60,10 +60,22 @@ TRANSLATIONS = {
     "탐색기 연결": "Explorer Registration",
     "등록": "Register",
     "해제": "Remove",
-    "압축파일 우클릭 메뉴에 '달빛뷰어로 열기'가 등록되어 있습니다.":
-        "'Open with Dalbit Viewer' is in the archive right-click menu.",
-    "등록되지 않았습니다. '등록'을 누르면 압축파일 우클릭 메뉴에 추가됩니다.":
-        "Not registered. Press Register to add it to the archive right-click menu.",
+    "등록되어 있습니다.\n"
+    "· 압축파일(CBZ/ZIP) 우클릭 메뉴에 '달빛뷰어로 열기' 추가\n"
+    "· 이미지 확장자(JPG/PNG 등)를 '연결 프로그램' 목록과 기본 앱 후보에 추가\n"
+    "기본 앱은 바뀌지 않습니다. Windows 설정 > 기본 앱에서 직접 선택하세요.":
+        "Registered.\n"
+        "· Adds 'Open with Dalbit Viewer' to the archive (CBZ/ZIP) right-click menu\n"
+        "· Adds image extensions (JPG/PNG, etc.) to the 'Open with' list and Default apps candidates\n"
+        "Your default apps are not changed. Choose Dalbit Viewer in Windows Settings > Default apps.",
+    "등록되지 않았습니다. '등록'을 누르면 다음이 추가됩니다.\n"
+    "· 압축파일(CBZ/ZIP) 우클릭 메뉴 '달빛뷰어로 열기'\n"
+    "· 이미지 확장자를 '연결 프로그램' 목록과 기본 앱 후보에 추가\n"
+    "기본 앱은 바뀌지 않습니다.":
+        "Not registered. Press Register to add:\n"
+        "· 'Open with Dalbit Viewer' to the archive (CBZ/ZIP) right-click menu\n"
+        "· Image extensions to the 'Open with' list and Default apps candidates\n"
+        "Your default apps are not changed.",
     "압축파일 우클릭 메뉴에 '달빛뷰어로 열기'를 등록했습니다.":
         "Added 'Open with Dalbit Viewer' to the archive right-click menu.",
     "탐색기 연결을 해제했습니다.\n기존 압축 프로그램의 연결은 그대로 유지됩니다.":
@@ -236,7 +248,7 @@ def detect_system_language():
 IMG_EXTS = {".bmp", ".jpg", ".jpeg", ".png", ".gif", ".webp", ".tiff", ".tif",
             ".ico", ".ppm", ".pgm", ".pnm", ".avif", ".jxl", ".dds", ".tga"}
 ARCHIVE_EXTS = {".zip", ".cbz"}
-VERSION = "1.3.0"  # EXE가 최신인지 확인용: EXE --version 으로 출력됨
+VERSION = "1.3.1"  # EXE가 최신인지 확인용: EXE --version 으로 출력됨
 
 
 def log_path():
@@ -351,6 +363,8 @@ DEFAULT_SETTINGS = {
     "end_behavior": "loop",     # loop: 처음/끝에서 반복 / stop: 처음/끝에서 멈춤 / next_folder: 다음 항목(폴더·압축파일)으로 이동
     "next_folder_sort": "name_asc",  # name_asc / name_desc / mtime_asc / mtime_desc
     "shortcuts": {},            # action_id -> key_id (예: "rotate": "r", "settings": "control-s")
+    "window_geometry": "",      # 마지막 창 위치/크기 (예: 1000x720+780+360)
+    "window_mode": "normal",    # normal / maximized / fullscreen
 }
 BG_COLORS = {"black": "#000000", "darkgray": "#1a1a1a", "white": "#ffffff"}
 CHROME_HEIGHT = 38
@@ -384,6 +398,10 @@ def load_settings():
         data["end_behavior"] = "loop"
     if data.get("next_folder_sort") not in ("name_asc", "name_desc", "mtime_asc", "mtime_desc"):
         data["next_folder_sort"] = "name_asc"
+    if data.get("window_mode") not in ("normal", "maximized", "fullscreen"):
+        data["window_mode"] = "normal"
+    if not isinstance(data.get("window_geometry"), str):
+        data["window_geometry"] = ""
     raw_shortcuts = data.get("shortcuts")
     if not isinstance(raw_shortcuts, dict):
         data["shortcuts"] = {}
@@ -675,11 +693,15 @@ class Viewer(tk.Tk):
         # 테두리 없는 자체 제목 표시줄. 전체화면은 Win32 창 크기/최상위로 처리한다.
         sw = self.winfo_screenwidth()
         sh = self.winfo_screenheight()
-        # 시작은 창모드. 작은 창으로 띄우고 필요하면 전체화면으로 전환한다.
-        start_w = min(1000, max(640, int(sw * 0.55)))
-        start_h = min(720, max(480, int(sh * 0.55)))
-        self._window_geometry = "%dx%d+%d+%d" % (
-            start_w, start_h, max(0, (sw - start_w) // 2), max(0, (sh - start_h) // 2))
+        # 지난번 창 위치/크기를 기억했다가 복원. 없으면 작은 창으로 시작.
+        saved_geo = self._saved_window_geometry()
+        if saved_geo:
+            self._window_geometry = saved_geo
+        else:
+            start_w = min(1000, max(640, int(sw * 0.55)))
+            start_h = min(720, max(480, int(sh * 0.55)))
+            self._window_geometry = "%dx%d+%d+%d" % (
+                start_w, start_h, max(0, (sw - start_w) // 2), max(0, (sh - start_h) // 2))
         self.geometry(self._window_geometry)
         try:
             self.attributes("-topmost", False)
@@ -762,6 +784,39 @@ class Viewer(tk.Tk):
         # 시작 후 2초간 움직임 없으면 커서 숨김
         self._reset_cursor_timer()
         self._destroyed = False
+
+    def _saved_window_geometry(self):
+        # settings.json에 저장된 마지막 창 위치/크기. 형식이 깨졌거나 화면 밖이면 None.
+        geo = str(self.settings.get("window_geometry") or "")
+        m = re.match(r"^(\d+)x(\d+)([+-]\d+)([+-]\d+)$", geo)
+        if not m:
+            return None
+        w, h, x, y = (int(v) for v in m.groups())
+        sw, sh = self.winfo_screenwidth(), self.winfo_screenheight()
+        w = max(560, min(w, sw))
+        h = max(320, min(h, sh))
+        # 모니터 구성이 바뀌어 창이 화면 밖으로 완전히 나간 경우는 가운데로.
+        if x + w < 80 or y + 40 < 0 or x > sw - 80 or y > sh - 40:
+            x = max(0, (sw - w) // 2)
+            y = max(0, (sh - h) // 2)
+        return "%dx%d+%d+%d" % (w, h, x, y)
+
+    def _save_window_state(self):
+        # 종료 시 마지막 창 상태를 저장한다. 전체화면/최대화였으면 그 사실도 함께.
+        try:
+            if self._is_fullscreen():
+                mode = "fullscreen"
+            elif self._maximized:
+                mode = "maximized"
+            else:
+                mode = "normal"
+            geo = self._window_geometry if mode != "normal" else self.geometry()
+            data = load_settings()
+            data["window_geometry"] = geo or ""
+            data["window_mode"] = mode
+            save_settings(data)
+        except Exception:
+            pass
 
     def _apply_window_icon(self):
         # 창/작업 표시줄 아이콘. EXE에는 아이콘이 내장되지만 Tk 창에는 직접 지정해야 한다.
@@ -854,6 +909,7 @@ class Viewer(tk.Tk):
         # 종료 시 타이머/토스트 정리
         if not getattr(self, "_destroyed", False):
             self._destroyed = True
+            self._save_window_state()
             self._cancel_scheduled_redraw()
             self._hide_tooltip()
             self._close_file_menu()
@@ -1102,7 +1158,6 @@ class Viewer(tk.Tk):
         if self._is_fullscreen():
             self._win_set_rect(0, 0, self.winfo_screenwidth(),
                                self.winfo_screenheight(), topmost=True)
-        # 시작 직후 다른 창이 앞으로 나오며 최소화되는 경우를 되돌린다.
         try:
             self.state("normal")
             self.deiconify()
@@ -1122,6 +1177,12 @@ class Viewer(tk.Tk):
             self.after(400, self._ensure_visible)
         except tk.TclError:
             pass
+        # 지난번에 전체화면/최대화로 껐으면 같은 상태로 시작한다.
+        mode = self.settings.get("window_mode", "normal")
+        if mode == "fullscreen":
+            self._enter_fullscreen()
+        elif mode == "maximized":
+            self._window_maximize()
 
     def _ensure_visible(self):
         try:
@@ -2067,15 +2128,22 @@ class Viewer(tk.Tk):
         unregister_btn = ttk.Button(assoc_btns, text=tr("해제"),
                                     command=lambda: set_assoc(False))
         unregister_btn.pack(side="left", padx=(6, 0))
-        ttk.Label(assoc, textvariable=assoc_state, foreground="#666666").pack(
+        ttk.Label(assoc, textvariable=assoc_state, foreground="#666666",
+                  wraplength=460, justify="left").pack(
             anchor="w", pady=(4, 0))
 
         def refresh_assoc():
             try:
                 if is_file_association_registered():
-                    assoc_state.set(tr("압축파일 우클릭 메뉴에 '달빛뷰어로 열기'가 등록되어 있습니다."))
+                    assoc_state.set(tr("등록되어 있습니다.\n"
+                                       "· 압축파일(CBZ/ZIP) 우클릭 메뉴에 '달빛뷰어로 열기' 추가\n"
+                                       "· 이미지 확장자(JPG/PNG 등)를 '연결 프로그램' 목록과 기본 앱 후보에 추가\n"
+                                       "기본 앱은 바뀌지 않습니다. Windows 설정 > 기본 앱에서 직접 선택하세요."))
                 else:
-                    assoc_state.set(tr("등록되지 않았습니다. '등록'을 누르면 압축파일 우클릭 메뉴에 추가됩니다."))
+                    assoc_state.set(tr("등록되지 않았습니다. '등록'을 누르면 다음이 추가됩니다.\n"
+                                       "· 압축파일(CBZ/ZIP) 우클릭 메뉴 '달빛뷰어로 열기'\n"
+                                       "· 이미지 확장자를 '연결 프로그램' 목록과 기본 앱 후보에 추가\n"
+                                       "기본 앱은 바뀌지 않습니다."))
             except Exception:
                 assoc_state.set("")
 
@@ -2097,6 +2165,7 @@ class Viewer(tk.Tk):
             }
             save_settings(new)
             self.settings = new
+            self._save_window_state()  # 설정 저장 시 창 상태 키가 지워지지 않게 유지
             # 즉시 적용
             for i, (n, _f, _d) in enumerate(INTERPOLATIONS):
                 if n == new["interpolation"]:
