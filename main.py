@@ -17,6 +17,7 @@ import json
 import os
 import re
 import sys
+import tempfile
 import zipfile
 from datetime import datetime
 from pathlib import Path
@@ -56,6 +57,36 @@ TRANSLATIONS = {
     "파일 열기...  (O)": "Open File...  (O)",
     "압축파일 열기...  (ZIP/CBZ)": "Open Archive...  (ZIP/CBZ)",
     "열람한 폴더 목록...  (L)": "Viewed Items...  (L)",
+    "탐색기 연결": "Explorer Registration",
+    "등록": "Register",
+    "해제": "Remove",
+    "압축파일 우클릭 메뉴에 '달빛뷰어로 열기'가 등록되어 있습니다.":
+        "'Open with Dalbit Viewer' is in the archive right-click menu.",
+    "등록되지 않았습니다. '등록'을 누르면 압축파일 우클릭 메뉴에 추가됩니다.":
+        "Not registered. Press Register to add it to the archive right-click menu.",
+    "압축파일 우클릭 메뉴에 '달빛뷰어로 열기'를 등록했습니다.":
+        "Added 'Open with Dalbit Viewer' to the archive right-click menu.",
+    "탐색기 연결을 해제했습니다.\n기존 압축 프로그램의 연결은 그대로 유지됩니다.":
+        "Explorer registration removed.\nYour existing archive program keeps its association.",
+    "EXE로 실행할 때만 등록할 수 있습니다.\n\n릴리스 ZIP에서 DalbitViewer.exe를 실행한 뒤 다시 시도하세요.":
+        "Registration works only when running the EXE.\n\nRun DalbitViewer.exe from the release ZIP and try again.",
+    "작업을 완료하지 못했습니다.": "The operation could not be completed.",
+    "파일 연결 등록은 Windows에서만 지원합니다.":
+        "File association is only supported on Windows.",
+    "파일 연결 등록은 EXE로 빌드한 뒤에 실행하세요.":
+        "Build the EXE first to register file associations.",
+    "먼저 EXE를 만든 뒤 그 파일에서 실행하세요.":
+        "Create the EXE first, then run it.",
+    "파일 연결 해제는 Windows에서만 지원합니다.":
+        "Removing the association is only supported on Windows.",
+    "등록 실패: %s": "Registration failed: %s",
+    "등록 완료: %s": "Registered: %s",
+    "연결된 확장자: %s": "Associated extensions: %s",
+    "압축파일은 우클릭 메뉴에서 '달빛뷰어로 열기'로 열 수 있습니다.":
+        "Archives can be opened from the right-click menu with 'Open with Dalbit Viewer'.",
+    "기본 앱으로 지정하려면 Windows 설정 > 기본 앱에서 한 번 선택하세요.":
+        "To set it as the default app, choose it once in Windows Settings > Default apps.",
+    "파일 연결 해제 완료.": "File association removed.",
     "보간기법 (확대/축소 품질)": "Interpolation (zoom quality)",
     "이미지 크기": "Image Size",
     "너비 맞춤 (8)": "Fit Width (8)",
@@ -205,7 +236,7 @@ def detect_system_language():
 IMG_EXTS = {".bmp", ".jpg", ".jpeg", ".png", ".gif", ".webp", ".tiff", ".tif",
             ".ico", ".ppm", ".pgm", ".pnm", ".avif", ".jxl", ".dds", ".tga"}
 ARCHIVE_EXTS = {".zip", ".cbz"}
-VERSION = "1.2.0"  # EXE가 최신인지 확인용: EXE --version 으로 출력됨
+VERSION = "1.3.0"  # EXE가 최신인지 확인용: EXE --version 으로 출력됨
 
 
 def log_path():
@@ -437,19 +468,6 @@ def _path_is_under(child, parent):
     return c == p or c.startswith(p + os.sep)
 
 
-def _view_key(path):
-    # 목록에 저장되는 값. 폴더는 그대로, 압축파일은 파일 경로 그대로 쓴다.
-    try:
-        return str(Path(path).resolve())
-    except Exception:
-        return str(path)
-
-
-def _archive_or_dir(path):
-    p = Path(path)
-    return p.is_dir() or p.suffix.lower() in ARCHIVE_EXTS
-
-
 def drop_nested_paths(paths):
     # 조상과 자손을 함께 선택해도 조상만 남긴다 (자손은 어차피 함께 삭제됨).
     kept = []
@@ -651,24 +669,20 @@ class Viewer(tk.Tk):
         self._toast_label = None
         self.title(tr("달빛뷰어"))
         self.minsize(560, 320)
-        # 창/작업 표시줄 아이콘 (EXE는 빌드 시 --icon으로 내장됨, 파이썬 실행 시에는 파일 사용)
-        try:
-            _here = os.path.dirname(os.path.abspath(__file__))
-            _icon = os.path.join(_here, "icon.ico")
-            if not os.path.exists(_icon):
-                _icon = os.path.join(os.path.dirname(sys.executable), "icon.ico")
-            if os.path.exists(_icon):
-                self.iconbitmap(_icon)
-        except Exception:
-            pass
+        self._apply_window_icon()
         bg = BG_COLORS.get(self.settings.get("bg_color", "black"), "#000000")
         self.configure(bg=bg)
         # 테두리 없는 자체 제목 표시줄. 전체화면은 Win32 창 크기/최상위로 처리한다.
         sw = self.winfo_screenwidth()
         sh = self.winfo_screenheight()
-        self.geometry("%dx%d+0+0" % (sw, sh))
+        # 시작은 창모드. 작은 창으로 띄우고 필요하면 전체화면으로 전환한다.
+        start_w = min(1000, max(640, int(sw * 0.55)))
+        start_h = min(720, max(480, int(sh * 0.55)))
+        self._window_geometry = "%dx%d+%d+%d" % (
+            start_w, start_h, max(0, (sw - start_w) // 2), max(0, (sh - start_h) // 2))
+        self.geometry(self._window_geometry)
         try:
-            self.attributes("-topmost", True)
+            self.attributes("-topmost", False)
         except tk.TclError:
             pass
         self.canvas = tk.Canvas(self, bg=bg, highlightthickness=0)
@@ -690,7 +704,6 @@ class Viewer(tk.Tk):
         self._photo = None
         self._cache = {}
         self._drag = None
-        self._closing = False
         self._last_error = None
         self._render_after = None
         self._fast_nav = False
@@ -708,41 +721,134 @@ class Viewer(tk.Tk):
         self._hide_bar_after = None
         self._chrome_visible = False
         self._chrome_hide_after = None
-        self._window_geometry = None
         self._file_dropdown = None
         self._tooltip = None
         self._keep_topmost_windowed = False
         self._suppress_topmost_drop = False
-        self._fullscreen = True
+        self._fullscreen = False
         self._maximized = False
         self._drag_offset = None
         self._resize_origin = None
+        self._edge_cursor_value = ""
 
         self._build_bottom_bar()
         self._build_chrome()
         self._bind_keys()
-        self.canvas.bind("<Configure>", lambda e: self._redraw())
+        self.canvas.bind("<Configure>", self._on_canvas_configure)
         self.bind("<Motion>", self._on_mouse_move)
+        # 창 가장자리에서 8방향 크기 조절. 위젯 없이 좌표로만 판정한다.
+        for w in (self, self.canvas, self._chrome):
+            w.bind("<Motion>", self._on_edge_motion, add="+")
+            w.bind("<ButtonPress-1>", self._resize_start, add="+")
+            w.bind("<B1-Motion>", self._resize_move, add="+")
+            w.bind("<ButtonRelease-1>", self._resize_end, add="+")
         # 테두리 없는 창을 작업 표시줄/Alt+Tab에 등록하고 전체화면 크기로 고정
         self.update_idletasks()
         self.after(0, self._init_native_window)
 
-        # 시작 경로: 명령줄 인자 > 없으면 파일 선택 대화상자
+        # 시작 경로: 명령줄 인자 > 없으면 아이콘 시작 화면
         target = start_path or (sys.argv[1] if len(sys.argv) > 1 else None)
         if target:
             if not self._load_path(target):
                 # 탐색기 연결로 실행했는데 초기 화면만 뜨는 경우의 대부분은
                 # 여기서 걸린다: 구버전 EXE(인자 무시) 또는 지원하지 않는 포맷.
                 self._show_load_error(target)
-                if not self._closing:
-                    self._open_dialog_or_quit()
+                self._show_welcome() or self._open_dialog_or_quit()
         else:
-            self._open_dialog_or_quit()
+            if not self._show_welcome():
+                self._open_dialog_or_quit()
         self._redraw()
         self._apply_slider_mode()
         # 시작 후 2초간 움직임 없으면 커서 숨김
         self._reset_cursor_timer()
         self._destroyed = False
+
+    def _apply_window_icon(self):
+        # 창/작업 표시줄 아이콘. EXE에는 아이콘이 내장되지만 Tk 창에는 직접 지정해야 한다.
+        base = Path(sys.executable).parent if getattr(sys, "frozen", False) \
+            else Path(__file__).resolve().parent
+        for name in ("icon.ico", "icon.png"):
+            p = base / name
+            if not p.exists():
+                meipass = getattr(sys, "_MEIPASS", None)
+                if meipass:
+                    p = Path(meipass) / name
+            if not p.exists():
+                continue
+            try:
+                if p.suffix.lower() == ".ico":
+                    self.iconbitmap(str(p))
+                else:
+                    # 창 아이콘은 ico만 받으므로 PNG에서 임시 ico를 만든다.
+                    tmp = Path(tempfile.gettempdir()) / "dalbit_window_icon.ico"
+                    img = Image.open(p).convert("RGBA")
+                    img.save(tmp, sizes=[(16, 16), (32, 32), (48, 48), (256, 256)])
+                    self.iconbitmap(str(tmp))
+                self._window_icon_photo = ImageTk.PhotoImage(
+                    Image.open(p).convert("RGBA"), master=self)
+                self.iconphoto(False, self._window_icon_photo)
+                return
+            except Exception:
+                continue
+
+    def _welcome_image_path(self):
+        # 시작 화면에 쓸 아이콘. EXE는 빌드 시 함께 넣은 파일을 찾는다.
+        candidates = []
+        if getattr(sys, "frozen", False):
+            candidates.append(Path(sys.executable).parent / "icon.png")
+            if getattr(sys, "_MEIPASS", None):
+                candidates.append(Path(sys._MEIPASS) / "icon.png")
+        candidates.append(Path(__file__).resolve().parent / "icon.png")
+        for c in candidates:
+            if c.exists():
+                return c
+        return None
+
+    def _show_welcome(self):
+        # 이미지 없이 실행했을 때 기본 아이콘 화면을 띄운다. 설정/연결 등록을 바로 할 수 있다.
+        path = self._welcome_image_path()
+        if path is None:
+            return False
+        try:
+            icon = Image.open(path)
+            icon.load()
+        except Exception:
+            return False
+        self._welcome_icon = icon.convert("RGBA")
+        self._draw_welcome()
+        return True
+
+    def _draw_welcome(self):
+        icon = getattr(self, "_welcome_icon", None)
+        if icon is None:
+            return
+        try:
+            cw = self.canvas.winfo_width() or self.winfo_screenwidth()
+            ch = self.canvas.winfo_height() or self.winfo_screenheight()
+            if cw <= 1 or ch <= 1:
+                return
+            side = max(64, int(min(cw, ch) * 0.45))
+            scale = side / max(icon.width, icon.height)
+            w = max(1, int(icon.width * scale))
+            h = max(1, int(icon.height * scale))
+            scaled = icon.resize((w, h), Image.LANCZOS)
+            bg = BG_COLORS.get(self.settings.get("bg_color", "black"), "#000000")
+            canvas_img = Image.new("RGBA", (cw, ch), bg)
+            canvas_img.paste(scaled, ((cw - w) // 2, (ch - h) // 2), scaled)
+            self._welcome_photo = ImageTk.PhotoImage(canvas_img.convert("RGB"),
+                                                     master=self.canvas)
+            self.canvas.delete("all")
+            self.canvas.create_image(cw // 2, ch // 2, image=self._welcome_photo,
+                                     anchor="center")
+            self.canvas.config(scrollregion=(0, 0, cw, ch))
+        except Exception:
+            pass
+
+    def _on_canvas_configure(self, event=None):
+        if self.items:
+            self._redraw()
+        else:
+            self._draw_welcome()
 
     def destroy(self):
         # 종료 시 타이머/토스트 정리
@@ -996,6 +1102,45 @@ class Viewer(tk.Tk):
         if self._is_fullscreen():
             self._win_set_rect(0, 0, self.winfo_screenwidth(),
                                self.winfo_screenheight(), topmost=True)
+        # 시작 직후 다른 창이 앞으로 나오며 최소화되는 경우를 되돌린다.
+        try:
+            self.state("normal")
+            self.deiconify()
+            self.lift()
+            self.focus_force()
+        except tk.TclError:
+            pass
+        hwnd = self._win_hwnd()
+        if hwnd:
+            try:
+                import ctypes
+                ctypes.windll.user32.SetForegroundWindow(hwnd)
+                ctypes.windll.user32.BringWindowToTop(hwnd)
+            except Exception:
+                pass
+        try:
+            self.after(400, self._ensure_visible)
+        except tk.TclError:
+            pass
+
+    def _ensure_visible(self):
+        try:
+            if self.state() == "iconic":
+                self.state("normal")
+                self.deiconify()
+                self.lift()
+        except tk.TclError:
+            pass
+        hwnd = self._win_hwnd()
+        if hwnd and not self._is_fullscreen():
+            try:
+                import ctypes
+                user32 = ctypes.windll.user32
+                if user32.GetForegroundWindow() != hwnd:
+                    user32.SetForegroundWindow(hwnd)
+                    user32.BringWindowToTop(hwnd)
+            except Exception:
+                pass
 
     def _win_appwindow(self):
         h = self._win_hwnd()
@@ -1139,11 +1284,6 @@ class Viewer(tk.Tk):
                                       else "최대화"))
         tip(self._close_btn, lambda: tr("닫기"))
 
-        self._resize_grip = tk.Label(self, text="◢", fg="#888888", bg=CHROME_BG,
-                                     font=("맑은 고딕", 9), cursor="size_nw_se")
-        self._resize_grip.bind("<ButtonPress-1>", self._resize_start)
-        self._resize_grip.bind("<B1-Motion>", self._resize_move)
-
         self._apply_chrome_mode()
 
     def _retranslate_chrome(self):
@@ -1187,6 +1327,29 @@ class Viewer(tk.Tk):
             return
         self._file_dropdown = frame
 
+    def _set_file_association(self, enabled, parent=None):
+        # 탐색기 연결을 앱 안에서 켜고 끈다. 레지스트리는 HKCU만 사용해 관리자 권한이 필요 없다.
+        owner = parent or self
+        if not getattr(sys, "frozen", False):
+            messagebox.showinfo(
+                tr("탐색기 연결"),
+                tr("EXE로 실행할 때만 등록할 수 있습니다.\n\n"
+                   "릴리스 ZIP에서 DalbitViewer.exe를 실행한 뒤 다시 시도하세요."),
+                parent=owner)
+            return
+        try:
+            if enabled:
+                ok = register_file_association(quiet=True) == 0
+                msg = ("압축파일 우클릭 메뉴에 '달빛뷰어로 열기'를 등록했습니다.")
+            else:
+                ok = unregister_file_association(quiet=True) == 0
+                msg = ("탐색기 연결을 해제했습니다.\n기존 압축 프로그램의 연결은 그대로 유지됩니다.")
+            messagebox.showinfo(tr("탐색기 연결"),
+                                tr(msg) if ok else tr("작업을 완료하지 못했습니다."),
+                                parent=owner)
+        except tk.TclError:
+            pass
+
     def _close_file_menu(self):
         frame = getattr(self, "_file_dropdown", None)
         self._file_dropdown = None
@@ -1216,6 +1379,11 @@ class Viewer(tk.Tk):
         if self._is_fullscreen() or self._maximized:
             self._drag_offset = None
             return
+        # 창 최상단 6px는 리사이즈 영역. 이동과 동시에 걸리는 떨림을 막는다.
+        if self._edge_at(event.x_root - self.winfo_rootx(),
+                         event.y_root - self.winfo_rooty()):
+            self._drag_offset = None
+            return
         self._drag_offset = (event.x_root - self.winfo_x(),
                              event.y_root - self.winfo_y())
 
@@ -1232,18 +1400,103 @@ class Viewer(tk.Tk):
     def _resize_start(self, event):
         if self._is_fullscreen() or self._maximized:
             self._resize_origin = None
-            return
+            return None
+        edge = getattr(event.widget, "_edge", None)
+        if not edge:
+            edge = self._edge_at(event.x_root - self.winfo_rootx(),
+                                 event.y_root - self.winfo_rooty())
+        if not edge:
+            self._resize_origin = None
+            return None
         self._resize_origin = (event.x_root, event.y_root,
+                               self.winfo_x(), self.winfo_y(),
                                self.winfo_width(), self.winfo_height())
+        self._resize_edge = edge
+        # 창 크기 조절 중에는 보간 없이(NEAREST) 그려서 드래그가 끊기지 않게 한다.
+        self._fast_nav = True
+        return "break"
 
     def _resize_move(self, event):
-        if self._is_fullscreen() or not self._resize_origin:
-            return
-        x0, y0, w0, h0 = self._resize_origin
-        w = max(560, w0 + event.x_root - x0)
-        h = max(320, h0 + event.y_root - y0)
+        if self._is_fullscreen() or not getattr(self, "_resize_origin", None):
+            return None
+        x0, y0, wx, wy, w0, h0 = self._resize_origin
+        dx = event.x_root - x0
+        dy = event.y_root - y0
+        edge = getattr(self, "_resize_edge", "se")
+        min_w, min_h = 560, 320
+
+        w, h = w0, h0
+        nx, ny = wx, wy
+        if "e" in edge:
+            w = max(min_w, w0 + dx)
+        if "w" in edge:
+            w = max(min_w, w0 - dx)
+            nx = wx + (w0 - w)
+        if "s" in edge:
+            h = max(min_h, h0 + dy)
+        if "n" in edge:
+            h = max(min_h, h0 - dy)
+            ny = wy + (h0 - h)
+
+        if (nx, ny, w, h) == (wx, wy, w0, h0):
+            return "break"
         try:
-            self.geometry("%dx%d" % (w, h))
+            self.geometry("%dx%d+%d+%d" % (w, h, nx, ny))
+        except tk.TclError:
+            return "break"
+        return "break"
+
+    def _resize_end(self, event=None):
+        self._resize_origin = None
+        self._end_fast_nav()
+
+    def _bg_color(self):
+        return BG_COLORS.get(self.settings.get("bg_color", "black"), "#000000")
+
+    def _edge_at(self, x, y):
+        # 창 좌표로 가장자리 판정. 위젯을 깔지 않아 화면에 아무것도 그리지 않는다.
+        if self._is_fullscreen() or self._maximized:
+            return None
+        t = 6
+        try:
+            w = self.winfo_width()
+            h = self.winfo_height()
+        except tk.TclError:
+            return None
+        if w <= 1 or h <= 1:
+            return None
+        left = x <= t
+        right = x >= w - t
+        top = y <= t
+        bottom = y >= h - t
+        if not (left or right or top or bottom):
+            return None
+        vertical = "n" if top else ("s" if bottom else "")
+        horizontal = "w" if left else ("e" if right else "")
+        return (vertical + horizontal) or None
+
+    def _edge_cursor(self, edge):
+        if edge in ("n", "s"):
+            return "size_ns"
+        if edge in ("w", "e"):
+            return "size_we"
+        if edge in ("nw", "se"):
+            return "size_nw_se"
+        if edge in ("ne", "sw"):
+            return "size_ne_sw"
+        return ""
+
+    def _on_edge_motion(self, event):
+        if self._resize_origin is not None:
+            return
+        edge = self._edge_at(event.x_root - self.winfo_rootx(),
+                             event.y_root - self.winfo_rooty())
+        cursor = self._edge_cursor(edge) if edge else ""
+        try:
+            if self._edge_cursor_value != cursor:
+                self.configure(cursor=cursor or "")
+                self.canvas.configure(cursor=cursor or "")
+                self._edge_cursor_value = cursor
         except tk.TclError:
             pass
 
@@ -1261,10 +1514,6 @@ class Viewer(tk.Tk):
                 self._chrome.place_forget()
             except tk.TclError:
                 pass
-            try:
-                self._resize_grip.place_forget()
-            except tk.TclError:
-                pass
             self._chrome_visible = False
         else:
             try:
@@ -1273,12 +1522,6 @@ class Viewer(tk.Tk):
                 pass
             self._chrome.pack(side="top", fill="x", before=self.canvas)
             self._chrome_visible = True
-            try:
-                self._resize_grip.place(relx=1.0, rely=1.0, anchor="se",
-                                        width=16, height=16)
-                self._resize_grip.lift()
-            except tk.TclError:
-                pass
         self._sync_chrome()
 
     def _sync_chrome(self):
@@ -1457,10 +1700,6 @@ class Viewer(tk.Tk):
             self._show_bottom_bar()
         elif self.slider_mode == "never":
             self._hide_bottom_bar()
-        elif self.slider_mode == "auto":
-            # 자동이면 평소에는 숨기고, 마우스를 아래로 내릴 때만 표시
-            if not self._slider_visible:
-                pass
 
     def _show_bottom_bar(self):
         if not self.items:
@@ -1814,6 +2053,36 @@ class Viewer(tk.Tk):
             ttk.Radiobutton(sort_frame, text=tr(label), variable=sort_var,
                             value=val).pack(anchor="w")
 
+        # 탐색기 연결 (압축파일 우클릭 메뉴)
+        assoc = ttk.Frame(dlg)
+        assoc.pack(anchor="w", fill="x", padx=14, pady=(12, 14))
+        assoc_label = ttk.Label(assoc, text=tr("탐색기 연결"))
+        assoc_label.pack(anchor="w", pady=(0, 2))
+        assoc_state = tk.StringVar()
+        assoc_btns = ttk.Frame(assoc)
+        assoc_btns.pack(anchor="w")
+        register_btn = ttk.Button(assoc_btns, text=tr("등록"),
+                                  command=lambda: set_assoc(True))
+        register_btn.pack(side="left")
+        unregister_btn = ttk.Button(assoc_btns, text=tr("해제"),
+                                    command=lambda: set_assoc(False))
+        unregister_btn.pack(side="left", padx=(6, 0))
+        ttk.Label(assoc, textvariable=assoc_state, foreground="#666666").pack(
+            anchor="w", pady=(4, 0))
+
+        def refresh_assoc():
+            try:
+                if is_file_association_registered():
+                    assoc_state.set(tr("압축파일 우클릭 메뉴에 '달빛뷰어로 열기'가 등록되어 있습니다."))
+                else:
+                    assoc_state.set(tr("등록되지 않았습니다. '등록'을 누르면 압축파일 우클릭 메뉴에 추가됩니다."))
+            except Exception:
+                assoc_state.set("")
+
+        def set_assoc(enabled):
+            self._set_file_association(enabled, parent=dlg)
+            refresh_assoc()
+
         def apply_now(*_args):
             new = {
                 "language": lang_var.get(),
@@ -1909,6 +2178,7 @@ class Viewer(tk.Tk):
             except tk.TclError:
                 pass
         sync_sort_state()
+        refresh_assoc()
         dlg.bind("<Escape>", lambda e: dlg.destroy())
         try:
             dlg.wait_window(dlg)
@@ -2286,6 +2556,10 @@ class Viewer(tk.Tk):
         except tk.TclError:
             pass
         self._photo = None
+        try:
+            self._draw_welcome()
+        except tk.TclError:
+            pass
 
     # ---------- 열기 ----------
     def _open_dialog_or_quit(self):
@@ -2306,10 +2580,9 @@ class Viewer(tk.Tk):
                 pass
             self._suppress_topmost_drop = False
         if not p:
+            # 시작 화면(아이콘)을 유지한다. 설정/연결 등록을 하려고 앱만 열 수 있어야 한다.
             if not self.items:
-                # 처음 실행에서 취소하면 조용히 종료
-                self.destroy()
-                self._closing = True
+                self._draw_welcome()
             return
         if not self._load_path(p):
             self._show_load_error(p)
@@ -2344,8 +2617,13 @@ class Viewer(tk.Tk):
             log_error("not exists: %r" % (target,))
             return False
         if p.is_dir():
-            files = [str(f) for f in p.iterdir()
-                     if f.is_file() and f.suffix.lower() in IMG_EXTS]
+            try:
+                files = [str(f) for f in p.iterdir()
+                         if f.is_file() and f.suffix.lower() in IMG_EXTS]
+            except OSError as e:
+                self._last_error = "%s: %s" % (p.name, e)
+                log_error("list failed: %r : %s" % (target, e))
+                return False
             files.sort(key=lambda x: natural_key(Path(x).name))
             if not files:
                 self._last_error = tr("폴더 안에 표시할 이미지가 없습니다.")
@@ -2405,8 +2683,13 @@ class Viewer(tk.Tk):
         elif p.suffix.lower() in IMG_EXTS:
             # 같은 폴더의 이미지들을 함께 불러와서 방향키로 이동 가능
             folder = p.parent
-            files = [str(f) for f in folder.iterdir()
-                     if f.is_file() and f.suffix.lower() in IMG_EXTS]
+            try:
+                files = [str(f) for f in folder.iterdir()
+                         if f.is_file() and f.suffix.lower() in IMG_EXTS]
+            except OSError as e:
+                self._last_error = "%s: %s" % (folder.name, e)
+                log_error("list failed: %r : %s" % (target, e))
+                return False
             files.sort(key=lambda x: natural_key(Path(x).name))
             self.items = [{"name": Path(f).name, "path": f, "arc": None, "arc_name": None}
                           for f in files]
@@ -2467,7 +2750,8 @@ class Viewer(tk.Tk):
             if im.mode not in ("RGB", "RGBA", "L"):
                 im = im.convert("RGBA" if "A" in im.getbands() else "RGB")
             if len(self._cache) > 10:
-                self._cache.clear()
+                # 전체 비우는 대신 가장 오래된 것 1개만 삭제 (메모리·히트율 균형)
+                del self._cache[next(iter(self._cache))]
             self._cache[idx] = im
             return im
         except Exception as e:
@@ -2476,7 +2760,8 @@ class Viewer(tk.Tk):
 
     def _redraw(self):
         self._cancel_scheduled_redraw()
-        if self._closing or not self.items or self.index < 0:
+        if not self.items or self.index < 0:
+            self._draw_welcome()
             return
         try:
             if not self.winfo_exists():
@@ -2489,6 +2774,7 @@ class Viewer(tk.Tk):
             return
         im = self._load_pil(self.index)
         if im is None:
+            log_error("render failed: %s" % (self._last_error,))
             return
         if self.fit_mode == "fit":
             scale = min(cw / im.width, ch / im.height)
@@ -2911,13 +3197,32 @@ def print_usage():
     print("탐색기 연결은 install.bat을 더블클릭하면 한 번에 처리됩니다.")
 
 
-def register_file_association():
+def is_file_association_registered():
+    # 압축파일 우클릭 메뉴가 현재 사용자에게 등록돼 있는지 확인한다.
     if sys.platform != "win32":
-        print("파일 연결 등록은 Windows에서만 지원합니다.")
+        return False
+    import winreg
+    try:
+        with winreg.OpenKey(
+                winreg.HKEY_CURRENT_USER,
+                r"Software\Classes\SystemFileAssociations\%s\shell\DalbitViewer"
+                % sorted(ARCHIVE_EXTS)[0]):
+            return True
+    except OSError:
+        return False
+
+
+def register_file_association(quiet=False):
+    def say(msg):
+        if not quiet:
+            print(msg)
+
+    if sys.platform != "win32":
+        say(tr("파일 연결 등록은 Windows에서만 지원합니다."))
         return 1
     if not getattr(sys, "frozen", False):
-        print("파일 연결 등록은 EXE로 빌드한 뒤에 실행하세요.")
-        print("먼저 build_exe.bat 또는 install.bat으로 EXE를 만드세요.")
+        say(tr("파일 연결 등록은 EXE로 빌드한 뒤에 실행하세요."))
+        say(tr("먼저 EXE를 만든 뒤 그 파일에서 실행하세요."))
         return 1
     import winreg
     exe = sys.executable
@@ -2968,18 +3273,22 @@ def register_file_association():
         reg_set(r"Software\RegisteredApplications", APP_REG_NAME,
                 r"Software\DalbitViewer\Capabilities")
     except OSError as e:
-        print("등록 실패: %s" % e)
+        say(tr("등록 실패: %s") % e)
         return 1
-    print("등록 완료: %s" % exe)
-    print("연결된 확장자: %s" % " ".join(ASSOC_EXTS))
-    print("기본 앱으로 지정은 install.bat이 이어서 시도하고,")
-    print("안 되면 설정 > 기본 앱에서 한 번만 선택하면 됩니다.")
+    say(tr("등록 완료: %s") % exe)
+    say(tr("연결된 확장자: %s") % " ".join(ASSOC_EXTS))
+    say(tr("압축파일은 우클릭 메뉴에서 '달빛뷰어로 열기'로 열 수 있습니다."))
+    say(tr("기본 앱으로 지정하려면 Windows 설정 > 기본 앱에서 한 번 선택하세요."))
     return 0
 
 
-def unregister_file_association():
+def unregister_file_association(quiet=False):
+    def say(msg):
+        if not quiet:
+            print(msg)
+
     if sys.platform != "win32":
-        print("파일 연결 해제는 Windows에서만 지원합니다.")
+        say(tr("파일 연결 해제는 Windows에서만 지원합니다."))
         return 1
     import winreg
 
@@ -3028,7 +3337,7 @@ def unregister_file_association():
         reg_delete_value(r"Software\Classes\%s\OpenWithProgids" % ext, PROG_ID)
     for ext in ARCHIVE_EXTS:
         reg_delete_tree(r"Software\Classes\SystemFileAssociations\%s\shell\DalbitViewer" % ext)
-    print("파일 연결 해제 완료.")
+    say(tr("파일 연결 해제 완료."))
     return 0
 
 
@@ -3046,7 +3355,6 @@ if __name__ == "__main__":
         sys.exit(unregister_file_association())
     try:
         app = Viewer()
-        if not getattr(app, "_closing", False):
-            app.mainloop()
+        app.mainloop()
     except tk.TclError:
         pass

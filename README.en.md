@@ -64,6 +64,12 @@ Press `L` to open the viewed list. Folders and archives are recorded automatical
 
 Download `DalbitViewer-<version>-win64.zip` from [Releases](https://github.com/sogid92/dalbit-viewer/releases), extract it, and run `DalbitViewer\DalbitViewer.exe`. Keep the folder intact; the EXE will not start if it is moved out or the other files are deleted.
 
+Without an image it opens a **windowed** icon start screen. Cancelling the file picker keeps the app running, so you can open Settings or register the file association right away.
+
+- **Resize**: drag any edge (top, bottom, left, right) or corner. All eight directions work, like a normal Windows window. Minimum is 560×320.
+- **Move**: drag an empty part of the top bar.
+- **Fullscreen**: `Alt+Enter` or the fullscreen button in the top bar. Press again to return to the previous window size.
+
 **Run from source** (Python 3.10 or newer)
 
 ```bat
@@ -75,13 +81,23 @@ Without a path, a file picker opens. You can open a folder or an archive instead
 
 ## Set as default app
 
-To open images in Dalbit Viewer by double-clicking, register it in Windows once.
+To add **Open with Dalbit Viewer** to the right-click menu for archives, register once in the settings dialog.
+
+1. Open **Settings** in the top bar.
+2. At the bottom under **Explorer Registration**, press **Register**.
+3. The status changes to registered and you are done.
+
+Press **Remove** in the same place to undo it. The current state is shown under the buttons.
+
+Registration only works when running the EXE. Running from source (`python main.py`) shows a notice instead.
+
+To open images in Dalbit Viewer by double-clicking, set it in Windows once more.
 
 **Option 1: Right-click a file**
 
 1. Right-click an image file.
 2. Choose **Open with** → **Choose another app**.
-3. If it is not listed, use **Look for another app on this PC** and select `DalbitViewer\DalbitViewer.exe`.
+3. Select **Dalbit Viewer** from the list. If it is missing, use **Look for another app on this PC** and pick `DalbitViewer\DalbitViewer.exe`.
 4. Check **Always use this app** and confirm.
 
 **Option 2: Windows Settings**
@@ -92,7 +108,7 @@ To open images in Dalbit Viewer by double-clicking, register it in Windows once.
 
 Each extension must be set separately. Supported associations: BMP, JPG, JPEG, JFIF, PNG, GIF, WebP, TIFF, AVIF, ICO, PPM, JXL, DDS, TGA, CBZ, ZIP
 
-Archives (CBZ/ZIP) also get a **Open with Dalbit Viewer** entry in the right-click menu. The default app is left unchanged, so an existing archive program keeps its association.
+Archives (CBZ/ZIP) only get the right-click menu entry; the default app is left unchanged, so an existing archive program keeps its association.
 
 Windows does not allow an app to change the default silently, so this has to be done once manually. After that, double-clicking opens the viewer.
 

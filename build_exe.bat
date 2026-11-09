@@ -21,10 +21,10 @@ if errorlevel 1 (
   exit /b 1
 )
 echo Building EXE...
-python -m PyInstaller --noconfirm --onedir --windowed --exclude-module numpy --name "DalbitViewer" --icon icon.ico main.py
+python -m PyInstaller --noconfirm --onedir --windowed --exclude-module numpy --add-data "icon.png;." --add-data "icon.ico;." --name "DalbitViewer" --icon icon.ico main.py
 if errorlevel 1 (
   echo Trying with py launcher...
-  py -3 -m PyInstaller --noconfirm --onedir --windowed --exclude-module numpy --name "DalbitViewer" --icon icon.ico main.py
+  py -3 -m PyInstaller --noconfirm --onedir --windowed --exclude-module numpy --add-data "icon.png;." --add-data "icon.ico;." --name "DalbitViewer" --icon icon.ico main.py
 )
 if errorlevel 1 (
   echo.
