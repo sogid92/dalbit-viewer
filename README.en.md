@@ -128,7 +128,7 @@ Open with the Settings button in the top bar or `Ctrl+S`. Changes apply and save
 
 - Images: JPG, PNG, GIF, WebP, TIFF, BMP, AVIF, and other formats supported by Pillow
 - Archives: ZIP, CBZ (viewed without extracting)
-- Animated GIF/WebP: first frame only
+- Animated GIF/WebP playback supported
 - HEIC/HEIF, RAW, and RAR/CBR are not supported
 
 ## Files

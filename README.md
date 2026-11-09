@@ -128,7 +128,7 @@ Windows 정책상 프로그램이 기본 앱을 직접 바꿀 수는 없어서, 
 
 - 이미지: JPG, PNG, GIF, WebP, TIFF, BMP, AVIF 등 Pillow가 지원하는 형식
 - 압축파일: ZIP, CBZ (풀지 않고 바로 보기)
-- 애니메이션 GIF/WebP는 첫 프레임만 표시
+- 애니메이션 GIF/WebP 재생 지원
 - HEIC/HEIF, RAW, RAR/CBR은 지원하지 않습니다
 
 ## 파일 위치

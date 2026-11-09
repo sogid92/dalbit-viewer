@@ -218,6 +218,11 @@ TRANSLATIONS = {
     "보통 · 선명 · 축소 시 디테일 유지": "Moderate · sharp · keeps detail when downscaling",
     "느린 편 · 고화질 · 주변 16픽셀 참조": "Slower · high quality · samples 16 nearby pixels",
     "가장 느림 · 최고 화질 · 기본값": "Slowest · best quality · default",
+    "%d/%d · 무한 반복": "%d/%d · looping",
+    "%d/%d · 1회 재생": "%d/%d · once",
+    "%d/%d · %d/%d회": "%d/%d · %d/%d plays",
+    "재생 완료 · 1회": "Finished · once",
+    "재생 완료 · %d회": "Finished · %d plays",
 }
 
 
@@ -248,7 +253,17 @@ def detect_system_language():
 IMG_EXTS = {".bmp", ".jpg", ".jpeg", ".png", ".gif", ".webp", ".tiff", ".tif",
             ".ico", ".ppm", ".pgm", ".pnm", ".avif", ".jxl", ".dds", ".tga"}
 ARCHIVE_EXTS = {".zip", ".cbz"}
-VERSION = "1.3.1"  # EXE가 최신인지 확인용: EXE --version 으로 출력됨
+VERSION = "1.3.2"  # EXE가 최신인지 확인용: EXE --version 으로 출력됨
+
+
+def animation_play_count(im):
+    # GIF의 loop는 첫 재생 후 추가 반복 횟수, WebP/APNG의 loop는 총 재생 횟수다.
+    loop = im.info.get("loop")
+    if loop is None:
+        return 1
+    if loop == 0:
+        return 0  # 무한 반복
+    return loop + 1 if getattr(im, "format", "") == "GIF" else loop
 
 
 def log_path():
@@ -724,6 +739,15 @@ class Viewer(tk.Tk):
         self._current_dir = None
         self._nav_root = None  # 다음 폴더 이동 범위: 처음 연 폴더의 부모. 이 밖으로는 절대 안 올라감.
         self._photo = None
+        self._canvas_image_id = None
+        self._anim_after = None
+        self._anim_im = None
+        self._anim_frame = 0
+        self._anim_loops_done = 0
+        self._anim_total = 0
+        self._anim_plays = 0
+        self._anim_done = False
+        self._anim_bar_visible = False
         self._cache = {}
         self._drag = None
         self._last_error = None
@@ -754,6 +778,7 @@ class Viewer(tk.Tk):
         self._edge_cursor_value = ""
 
         self._build_bottom_bar()
+        self._build_anim_bar()
         self._build_chrome()
         self._bind_keys()
         self.canvas.bind("<Configure>", self._on_canvas_configure)
@@ -874,6 +899,8 @@ class Viewer(tk.Tk):
         return True
 
     def _draw_welcome(self):
+        self._stop_animation()
+        self._canvas_image_id = None
         icon = getattr(self, "_welcome_icon", None)
         if icon is None:
             return
@@ -911,6 +938,7 @@ class Viewer(tk.Tk):
             self._destroyed = True
             self._save_window_state()
             self._cancel_scheduled_redraw()
+            self._stop_animation()
             self._hide_tooltip()
             self._close_file_menu()
             self._cancel_chrome_hide()
@@ -1756,6 +1784,32 @@ class Viewer(tk.Tk):
         self._slider.bind("<Enter>", lambda e: self._cancel_hide_bar())
         self._slider.bind("<Leave>", lambda e: self._hide_bottom_bar())
 
+    def _build_anim_bar(self):
+        # 애니메이션 프레임 진행 바. 정지 이미지에서는 숨긴다.
+        bar = tk.Frame(self, bg="#222222")
+        self._anim_bar = bar
+        self._anim_bar_label = tk.Label(bar, text="", fg="#dddddd", bg="#222222",
+                                        anchor="w", font=("", 9))
+        self._anim_bar_label.pack(fill="x", padx=10, pady=(3, 0))
+        track = tk.Canvas(bar, height=4, bg="#444444", highlightthickness=0)
+        self._anim_bar_track = track
+        track.pack(fill="x", padx=10, pady=(2, 4))
+        self._anim_bar_fill = track.create_rectangle(0, 0, 0, 4,
+                                                     fill="#bbbbbb", outline="")
+        track.bind("<Configure>", lambda e: self._update_anim_bar())
+
+    def _bottom_bar_y(self):
+        # 애니메이션 바가 보이면 페이지 슬라이더를 그 위로 올린다.
+        return -40 if self._anim_bar_visible else -10
+
+    def _reposition_bottom_bar(self):
+        if not self._slider_visible:
+            return
+        try:
+            self._bottom_bar.place_configure(y=self._bottom_bar_y())
+        except tk.TclError:
+            pass
+
     def _apply_slider_mode(self):
         if self.slider_mode == "always" and self.items:
             self._show_bottom_bar()
@@ -1769,7 +1823,8 @@ class Viewer(tk.Tk):
             try:
                 # 화면 한가운데 1/3 너비로 축소, 하단에서 10px 띄워서 표시
                 self._bottom_bar.place(relx=0.5, rely=1.0, anchor="s",
-                                       relwidth=0.33, height=64, y=-10)
+                                       relwidth=0.33, height=64,
+                                       y=self._bottom_bar_y())
                 self._slider_visible = True
             except tk.TclError:
                 return
@@ -2618,6 +2673,7 @@ class Viewer(tk.Tk):
         self._slider_target = None
         self.zoom = 1.0
         self._clear_edge_armed()
+        self._stop_animation()
         self._hide_bottom_bar()
         try:
             self.canvas.delete("all")
@@ -2783,6 +2839,7 @@ class Viewer(tk.Tk):
 
     def _reset_view(self):
         self._cache.clear()
+        self._stop_animation()
         self.zoom = 1.0
         # 줌 상태는 이미지마다 초기화하고, 맞춤 모드는 유지한다.
         # 새 폴더를 열 때는 _load_path에서 기본 맞춤으로 다시 설정한다.
@@ -2810,14 +2867,17 @@ class Viewer(tk.Tk):
             else:
                 im = Image.open(it["path"])
             im.load()
-            if getattr(im, "is_animated", False):
+            if getattr(im, "is_animated", False) and getattr(im, "n_frames", 1) > 1:
+                # 애니메이션 원본은 그대로 캐시에 둔다.
+                # exif_transpose/convert는 첫 프레임만 남기므로 적용하지 않는다.
                 try:
                     im.seek(0)
                 except Exception:
                     pass
-            im = ImageOps.exif_transpose(im)
-            if im.mode not in ("RGB", "RGBA", "L"):
-                im = im.convert("RGBA" if "A" in im.getbands() else "RGB")
+            else:
+                im = ImageOps.exif_transpose(im)
+                if im.mode not in ("RGB", "RGBA", "L"):
+                    im = im.convert("RGBA" if "A" in im.getbands() else "RGB")
             if len(self._cache) > 10:
                 # 전체 비우는 대신 가장 오래된 것 1개만 삭제 (메모리·히트율 균형)
                 del self._cache[next(iter(self._cache))]
@@ -2829,6 +2889,7 @@ class Viewer(tk.Tk):
 
     def _redraw(self):
         self._cancel_scheduled_redraw()
+        self._stop_animation()
         if not self.items or self.index < 0:
             self._draw_welcome()
             return
@@ -2845,24 +2906,33 @@ class Viewer(tk.Tk):
         if im is None:
             log_error("render failed: %s" % (self._last_error,))
             return
+        animated = bool(getattr(im, "is_animated", False) and
+                        getattr(im, "n_frames", 1) > 1)
+        if animated:
+            try:
+                im.seek(0)
+            except Exception:
+                animated = False
+        # 프레임은 RGBA로 변환해 그린다. 원본(im)은 캐시에서 애니메이션 상태를 유지한다.
+        frame = im.convert("RGBA") if animated else im
         if self.fit_mode == "fit":
-            scale = min(cw / im.width, ch / im.height)
+            scale = min(cw / frame.width, ch / frame.height)
         elif self.fit_mode == "width":
-            scale = cw / im.width
+            scale = cw / frame.width
         elif self.fit_mode == "original":
             scale = 1.0
         else:  # zoom
             scale = self.zoom
         scale = max(0.01, min(scale, 50))
-        nw = max(1, int(im.width * scale))
-        nh = max(1, int(im.height * scale))
+        nw = max(1, int(frame.width * scale))
+        nh = max(1, int(frame.height * scale))
         # 보간기법이 실제로 적용되는 지점: Pillow resize의 resample 인자
         # 키를 누르고 있는 동안은 보간 없이(NEAREST) 빠르게 그린다.
         if self._fast_nav:
             filt = Image.NEAREST
         else:
             filt = INTERPOLATIONS[self.interp_idx][1]
-        disp = im.resize((nw, nh), filt)
+        disp = frame.resize((nw, nh), filt)
         self._disp_size = (disp.width, disp.height)
         try:
             self._photo = ImageTk.PhotoImage(disp, master=self.canvas)
@@ -2870,7 +2940,8 @@ class Viewer(tk.Tk):
             # 가운데 정렬. 확대되어 화면보다 크면 스크롤 영역으로 드래그 이동 가능
             x = max(cw // 2, disp.width // 2)
             y = max(ch // 2, disp.height // 2)
-            self.canvas.create_image(x, y, image=self._photo, anchor="center")
+            self._canvas_image_id = self.canvas.create_image(x, y, image=self._photo,
+                                                             anchor="center")
             self.canvas.config(scrollregion=(0, 0, max(cw, disp.width), max(ch, disp.height)))
         except tk.TclError:
             return
@@ -2885,6 +2956,139 @@ class Viewer(tk.Tk):
             self.canvas.update_idletasks()
         except tk.TclError:
             pass
+        if animated and not self._fast_nav:
+            self._anim_total = im.n_frames
+            self._anim_plays = animation_play_count(im)
+            self._anim_done = False
+            self._start_animation(im)
+            self._show_anim_bar()
+
+    # ---------- 애니메이션 재생 ----------
+    def _stop_animation(self, hide_bar=True):
+        if getattr(self, "_anim_after", None) is not None:
+            try:
+                self.after_cancel(self._anim_after)
+            except Exception:
+                pass
+        self._anim_after = None
+        self._anim_im = None
+        if hide_bar:
+            self._anim_done = False
+            self._hide_anim_bar()
+
+    def _start_animation(self, im):
+        self._stop_animation(hide_bar=False)
+        if self._fast_nav:
+            return
+        self._anim_im = im
+        self._anim_frame = 0
+        self._anim_loops_done = 0
+        self._anim_done = False
+        self._schedule_anim_tick()
+
+    def _finish_animation(self):
+        # 1회/지정 횟수 재생이 끝난 상태. 바는 마지막 프레임에서 멈춰 둔다.
+        self._anim_done = True
+        self._update_anim_bar()
+        self._stop_animation(hide_bar=False)
+
+    def _schedule_anim_tick(self):
+        im = self._anim_im
+        if im is None:
+            return
+        try:
+            dur = im.info.get("duration") or 100
+            delay = max(20, int(dur))
+        except Exception:
+            delay = 100
+        try:
+            self._anim_after = self.after(delay, self._anim_tick)
+        except tk.TclError:
+            self._anim_after = None
+
+    def _anim_tick(self):
+        self._anim_after = None
+        im = self._anim_im
+        if im is None:
+            return
+        try:
+            nxt = self._anim_frame + 1
+            if nxt >= im.n_frames:
+                if self._anim_plays == 0:  # 무한 반복
+                    nxt = 0
+                else:
+                    self._anim_loops_done += 1
+                    if self._anim_loops_done >= self._anim_plays:
+                        self._finish_animation()
+                        return
+                    nxt = 0
+            im.seek(nxt)
+            self._anim_frame = nxt
+            dw, dh = self._disp_size
+            if dw <= 0 or dh <= 0 or self._canvas_image_id is None:
+                self._stop_animation()
+                return
+            frame = im.convert("RGBA")
+            if (frame.width, frame.height) != (dw, dh):
+                frame = frame.resize((dw, dh), INTERPOLATIONS[self.interp_idx][1])
+            self._photo = ImageTk.PhotoImage(frame, master=self.canvas)
+            self.canvas.itemconfigure(self._canvas_image_id, image=self._photo)
+            self._update_anim_bar()
+            self._schedule_anim_tick()
+        except Exception as e:
+            log_error("animation failed: %s" % e)
+            self._stop_animation()
+
+    # ---------- 애니메이션 프레임 바 ----------
+    def _show_anim_bar(self):
+        if getattr(self, "_anim_bar", None) is None:
+            return
+        if not self._anim_bar_visible:
+            try:
+                self._anim_bar.place(relx=0.5, rely=1.0, anchor="s",
+                                     relwidth=0.33, height=30, y=-6)
+            except tk.TclError:
+                return
+            self._anim_bar_visible = True
+            self._reposition_bottom_bar()
+        self._update_anim_bar()
+
+    def _hide_anim_bar(self):
+        if not getattr(self, "_anim_bar_visible", False):
+            return
+        try:
+            self._anim_bar.place_forget()
+        except tk.TclError:
+            pass
+        self._anim_bar_visible = False
+        self._reposition_bottom_bar()
+
+    def _update_anim_bar(self):
+        if not getattr(self, "_anim_bar_visible", False):
+            return
+        try:
+            total = max(1, self._anim_total)
+            w = self._anim_bar_track.winfo_width()
+            if w > 1:
+                frac = 1.0 if self._anim_done else min(self._anim_frame + 1, total) / total
+                self._anim_bar_track.coords(self._anim_bar_fill, 0, 0,
+                                            max(1, int(w * frac)), 4)
+            self._anim_bar_label.config(text=self._anim_bar_text())
+        except tk.TclError:
+            pass
+
+    def _anim_bar_text(self):
+        total = max(1, self._anim_total)
+        frame = min(self._anim_frame + 1, total)
+        if self._anim_done:
+            return tr("재생 완료 · %d회") % self._anim_plays
+        if self._anim_plays == 0:
+            return tr("%d/%d · 무한 반복") % (frame, total)
+        if self._anim_plays == 1:
+            return tr("%d/%d · 1회 재생") % (frame, total)
+        return tr("%d/%d · %d/%d회") % (
+            frame, total, min(self._anim_loops_done + 1, self._anim_plays),
+            self._anim_plays)
 
     def _center_view(self):
         # 스크롤 가능한 경우 뷰를 가운데로 (새 이미지/맞춤 변경 시)
