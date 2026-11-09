@@ -1,8 +1,55 @@
 # Dalbit Viewer
 
-A fullscreen image viewer for Windows. The interface stays out of the way until you need it.
+**No ads. No account. No internet connection.**
+**A viewer that focuses on viewing.**
+If toolbars covering the image bother you — it opens fullscreen and the UI appears only when you need it. A Windows image viewer that steps through folders in order without extracting ZIP files. 14.6MB, no installation.
 
 **한국어:** [README.md](README.md)
+
+## Highlights
+
+### Browse folders in the order you want
+
+Organize comics or photos into folders, and it moves to the next folder automatically when you finish one.
+
+- Sort by name ascending/descending or date modified ascending/descending
+- Folders without images are skipped
+- Movement stays inside the parent of the folder you opened. It never escapes upward
+- Choose what happens at the end: loop, stop, or go to the next folder
+
+### Clean up the folders you finished in one go
+
+Press `L` to open the viewed-folder list. Folders are recorded automatically as you browse.
+
+- Check several folders, or use **Select All** to pick them all at once
+- **Move to Trash** sends the actual folders and their files to the Windows Recycle Bin
+- **Remove from list** leaves the disk untouched and only cleans the list
+- Drive roots, the user home, Windows default folders, and system folders are protected from accidental deletion
+
+### Fill the screen with the image
+
+- Opens fullscreen; the top bar appears only when the mouse moves to the top
+- The cursor hides after 2 seconds and returns when you move it
+- The bottom slider jumps quickly through the current folder
+- Background can be black, dark gray, or white
+
+### View archives without extracting
+
+- Open ZIP and CBZ files directly and page through the images inside
+- No need to unpack comic archives into folders
+
+### Tune the viewing and controls to your taste
+
+- Six interpolation methods: NEAREST for pixel art, LANCZOS for photos
+- Two wheel layouts: wheel for navigation or wheel for zoom
+- Reassign the main shortcuts
+- Korean / English
+
+### Light, and leaves nothing behind
+
+- No ads, no account, no tracking, no internet connection
+- No installer: extract and run
+- Settings are stored only inside the program folder. If you register it as the default app, an entry is added to the Windows registry
 
 ## How to run
 
@@ -74,10 +121,6 @@ Open with the Settings button in the top bar or `Ctrl+S`. Changes apply and save
 - **Bottom slider**: Auto / always / never
 - **Start/end behavior**: Loop / stop / go to next folder
 - **Next folder order**: Only enabled with "go to next folder"
-
-## Viewed folders (L)
-
-Folders are recorded when you move to the next folder with the "go to next folder" behavior. Checked folders can be moved to the Windows Recycle Bin or removed from the list only. Drive roots, the user home, Windows default folders, and system folders cannot be deleted.
 
 ## Supported formats
 
