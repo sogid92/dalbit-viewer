@@ -218,10 +218,10 @@ TRANSLATIONS = {
     "보통 · 선명 · 축소 시 디테일 유지": "Moderate · sharp · keeps detail when downscaling",
     "느린 편 · 고화질 · 주변 16픽셀 참조": "Slower · high quality · samples 16 nearby pixels",
     "가장 느림 · 최고 화질 · 기본값": "Slowest · best quality · default",
-    "%d/%d · 무한 반복": "%d/%d · looping",
+    "애니메이션 프레임 바 표시 (하단 왼쪽)": "Show animation frame bar (bottom left)",
     "%d/%d · 1회 재생": "%d/%d · once",
     "%d/%d · %d/%d회": "%d/%d · %d/%d plays",
-    "재생 완료 · 1회": "Finished · once",
+    "%d/%d · 일시정지": "%d/%d · paused",
     "재생 완료 · %d회": "Finished · %d plays",
 }
 
@@ -253,7 +253,7 @@ def detect_system_language():
 IMG_EXTS = {".bmp", ".jpg", ".jpeg", ".png", ".gif", ".webp", ".tiff", ".tif",
             ".ico", ".ppm", ".pgm", ".pnm", ".avif", ".jxl", ".dds", ".tga"}
 ARCHIVE_EXTS = {".zip", ".cbz"}
-VERSION = "1.3.2"  # EXE가 최신인지 확인용: EXE --version 으로 출력됨
+VERSION = "1.3.3"  # EXE가 최신인지 확인용: EXE --version 으로 출력됨
 
 
 def animation_play_count(im):
@@ -375,6 +375,7 @@ DEFAULT_SETTINGS = {
     "wheel_mode": "navigate",   # navigate: 휠=이동+Ctrl+휠=줌 / zoom: 휠=줌+Ctrl+휠=이동
     "bg_color": "black",        # black / darkgray / white
     "slider_mode": "auto",      # auto: 마우스를 아래로 내리면 표시 / always: 항상 표시 / never: 표시 안 함
+    "show_anim_bar": True,      # 애니메이션 프레임 바 표시
     "end_behavior": "loop",     # loop: 처음/끝에서 반복 / stop: 처음/끝에서 멈춤 / next_folder: 다음 항목(폴더·압축파일)으로 이동
     "next_folder_sort": "name_asc",  # name_asc / name_desc / mtime_asc / mtime_desc
     "shortcuts": {},            # action_id -> key_id (예: "rotate": "r", "settings": "control-s")
@@ -413,6 +414,8 @@ def load_settings():
         data["end_behavior"] = "loop"
     if data.get("next_folder_sort") not in ("name_asc", "name_desc", "mtime_asc", "mtime_desc"):
         data["next_folder_sort"] = "name_asc"
+    if not isinstance(data.get("show_anim_bar"), bool):
+        data["show_anim_bar"] = True
     if data.get("window_mode") not in ("normal", "maximized", "fullscreen"):
         data["window_mode"] = "normal"
     if not isinstance(data.get("window_geometry"), str):
@@ -736,17 +739,20 @@ class Viewer(tk.Tk):
         self.slider_mode = self.settings.get("slider_mode", "auto")
         self.end_behavior = self.settings.get("end_behavior", "loop")
         self.next_folder_sort = self.settings.get("next_folder_sort", "name_asc")
+        self.show_anim_bar = bool(self.settings.get("show_anim_bar", True))
         self._current_dir = None
         self._nav_root = None  # 다음 폴더 이동 범위: 처음 연 폴더의 부모. 이 밖으로는 절대 안 올라감.
         self._photo = None
         self._canvas_image_id = None
         self._anim_after = None
         self._anim_im = None
+        self._anim_src = None
         self._anim_frame = 0
         self._anim_loops_done = 0
         self._anim_total = 0
         self._anim_plays = 0
         self._anim_done = False
+        self._anim_paused = False
         self._anim_bar_visible = False
         self._cache = {}
         self._drag = None
@@ -1786,29 +1792,40 @@ class Viewer(tk.Tk):
 
     def _build_anim_bar(self):
         # 애니메이션 프레임 진행 바. 정지 이미지에서는 숨긴다.
-        bar = tk.Frame(self, bg="#222222")
+        bar = tk.Frame(self, bg="#222222", highlightbackground="#555555",
+                       highlightthickness=1)
         self._anim_bar = bar
-        self._anim_bar_label = tk.Label(bar, text="", fg="#dddddd", bg="#222222",
+        top = tk.Frame(bar, bg="#222222")
+        top.pack(fill="x", padx=6, pady=(2, 0))
+        self._anim_bar_label = tk.Label(top, text="", fg="#dddddd", bg="#222222",
                                         anchor="w", font=("", 9))
-        self._anim_bar_label.pack(fill="x", padx=10, pady=(3, 0))
-        track = tk.Canvas(bar, height=4, bg="#444444", highlightthickness=0)
+        self._anim_bar_label.pack(side="left", fill="x", expand=True)
+        btns = tk.Frame(top, bg="#222222")
+        btns.pack(side="right")
+        btn_kw = dict(bg="#333333", fg="#dddddd", activebackground="#555555",
+                      activeforeground="#ffffff", relief="flat", bd=0,
+                      highlightthickness=1, highlightbackground="#777777",
+                      highlightcolor="#777777", padx=2, pady=1, font=("", 8),
+                      takefocus=0, cursor="hand2", width=2)
+        self._anim_prev_btn = tk.Button(
+            btns, text="|◀", command=lambda: self._anim_step(-1), **btn_kw)
+        self._anim_prev_btn.pack(side="left", padx=(0, 3))
+        self._anim_play_btn = tk.Button(
+            btns, text="▶", command=self._anim_toggle_pause, **btn_kw)
+        self._anim_play_btn.pack(side="left", padx=(0, 3))
+        self._anim_next_btn = tk.Button(
+            btns, text="▶|", command=lambda: self._anim_step(1), **btn_kw)
+        self._anim_next_btn.pack(side="left")
+        track = tk.Canvas(bar, height=8, bg="#444444", highlightthickness=0,
+                          cursor="hand2")
         self._anim_bar_track = track
-        track.pack(fill="x", padx=10, pady=(2, 4))
-        self._anim_bar_fill = track.create_rectangle(0, 0, 0, 4,
+        track.pack(fill="x", padx=6, pady=(2, 4))
+        self._anim_bar_fill = track.create_rectangle(0, 0, 0, 8,
                                                      fill="#bbbbbb", outline="")
         track.bind("<Configure>", lambda e: self._update_anim_bar())
-
-    def _bottom_bar_y(self):
-        # 애니메이션 바가 보이면 페이지 슬라이더를 그 위로 올린다.
-        return -40 if self._anim_bar_visible else -10
-
-    def _reposition_bottom_bar(self):
-        if not self._slider_visible:
-            return
-        try:
-            self._bottom_bar.place_configure(y=self._bottom_bar_y())
-        except tk.TclError:
-            pass
+        track.bind("<Button-1>", self._on_anim_seek_press)
+        track.bind("<B1-Motion>", self._on_anim_seek_drag)
+        track.bind("<ButtonRelease-1>", self._on_anim_seek_release)
 
     def _apply_slider_mode(self):
         if self.slider_mode == "always" and self.items:
@@ -1823,8 +1840,7 @@ class Viewer(tk.Tk):
             try:
                 # 화면 한가운데 1/3 너비로 축소, 하단에서 10px 띄워서 표시
                 self._bottom_bar.place(relx=0.5, rely=1.0, anchor="s",
-                                       relwidth=0.33, height=64,
-                                       y=self._bottom_bar_y())
+                                       relwidth=0.33, height=64, y=-10)
                 self._slider_visible = True
             except tk.TclError:
                 return
@@ -2140,6 +2156,12 @@ class Viewer(tk.Tk):
         for label, val in [("마우스 아래로 내리면 표시", "auto"), ("항상 표시", "always"), ("표시 안 함", "never")]:
             ttk.Radiobutton(slider_frame, text=tr(label), variable=slider_var,
                             value=val).pack(anchor="w")
+        # 애니메이션 프레임 바
+        anim_bar_var = tk.BooleanVar(value=bool(cur.get("show_anim_bar", True)))
+        anim_bar_check = ttk.Checkbutton(
+            dlg, text=tr("애니메이션 프레임 바 표시 (하단 왼쪽)"),
+            variable=anim_bar_var)
+        anim_bar_check.pack(anchor="w", padx=14, pady=(10, 0))
         # 처음/끝 동작 + 다음 폴더 순서 (가로 배치)
         end_sort = ttk.Frame(dlg)
         end_sort.pack(anchor="w", fill="x", padx=14, pady=(10, 14))
@@ -2214,6 +2236,7 @@ class Viewer(tk.Tk):
                 "wheel_mode": wheel_var.get(),
                 "bg_color": bg_var.get(),
                 "slider_mode": slider_var.get(),
+                "show_anim_bar": bool(anim_bar_var.get()),
                 "end_behavior": end_var.get(),
                 "next_folder_sort": sort_var.get(),
                 "shortcuts": dict(self._shortcuts),
@@ -2228,6 +2251,7 @@ class Viewer(tk.Tk):
                     break
             self.wheel_mode = new["wheel_mode"]
             self.slider_mode = new["slider_mode"]
+            self.show_anim_bar = new["show_anim_bar"]
             self.end_behavior = new.get("end_behavior", "loop")
             self.next_folder_sort = new.get("next_folder_sort", "name_asc")
             # 이미지 크기 변경은 현재 화면에도 바로 적용
@@ -2286,7 +2310,7 @@ class Viewer(tk.Tk):
 
         # 모든 컨트롤에 즉시 적용 연결 (저장/취소 버튼 없음)
         interp_combo.bind("<<ComboboxSelected>>", apply_now)
-        for w in list(fit_frame.winfo_children()) + list(wheel_frame.winfo_children()) + list(bg_frame.winfo_children()) + list(slider_frame.winfo_children()):
+        for w in list(fit_frame.winfo_children()) + list(wheel_frame.winfo_children()) + list(bg_frame.winfo_children()) + list(slider_frame.winfo_children()) + [anim_bar_check]:
             try:
                 w.configure(command=apply_now)
             except tk.TclError:
@@ -2913,6 +2937,7 @@ class Viewer(tk.Tk):
                 im.seek(0)
             except Exception:
                 animated = False
+        self._anim_src = im if animated else None
         # 프레임은 RGBA로 변환해 그린다. 원본(im)은 캐시에서 애니메이션 상태를 유지한다.
         frame = im.convert("RGBA") if animated else im
         if self.fit_mode == "fit":
@@ -2960,6 +2985,7 @@ class Viewer(tk.Tk):
             self._anim_total = im.n_frames
             self._anim_plays = animation_play_count(im)
             self._anim_done = False
+            self._anim_paused = False
             self._start_animation(im)
             self._show_anim_bar()
 
@@ -2973,24 +2999,31 @@ class Viewer(tk.Tk):
         self._anim_after = None
         self._anim_im = None
         if hide_bar:
+            self._anim_src = None
             self._anim_done = False
+            self._anim_paused = False
             self._hide_anim_bar()
 
     def _start_animation(self, im):
         self._stop_animation(hide_bar=False)
         if self._fast_nav:
             return
+        self._anim_src = im
         self._anim_im = im
         self._anim_frame = 0
         self._anim_loops_done = 0
         self._anim_done = False
+        self._anim_paused = False
+        self._update_anim_buttons()
         self._schedule_anim_tick()
 
     def _finish_animation(self):
         # 1회/지정 횟수 재생이 끝난 상태. 바는 마지막 프레임에서 멈춰 둔다.
         self._anim_done = True
-        self._update_anim_bar()
+        self._anim_paused = False
         self._stop_animation(hide_bar=False)
+        self._update_anim_bar()
+        self._update_anim_buttons()
 
     def _schedule_anim_tick(self):
         im = self._anim_im
@@ -3024,33 +3057,117 @@ class Viewer(tk.Tk):
                     nxt = 0
             im.seek(nxt)
             self._anim_frame = nxt
-            dw, dh = self._disp_size
-            if dw <= 0 or dh <= 0 or self._canvas_image_id is None:
+            if not self._display_anim_frame(im):
                 self._stop_animation()
                 return
-            frame = im.convert("RGBA")
-            if (frame.width, frame.height) != (dw, dh):
-                frame = frame.resize((dw, dh), INTERPOLATIONS[self.interp_idx][1])
-            self._photo = ImageTk.PhotoImage(frame, master=self.canvas)
-            self.canvas.itemconfigure(self._canvas_image_id, image=self._photo)
             self._update_anim_bar()
             self._schedule_anim_tick()
         except Exception as e:
             log_error("animation failed: %s" % e)
             self._stop_animation()
 
+    def _display_anim_frame(self, im):
+        dw, dh = self._disp_size
+        if dw <= 0 or dh <= 0 or self._canvas_image_id is None:
+            return False
+        frame = im.convert("RGBA")
+        if (frame.width, frame.height) != (dw, dh):
+            frame = frame.resize((dw, dh), INTERPOLATIONS[self.interp_idx][1])
+        self._photo = ImageTk.PhotoImage(frame, master=self.canvas)
+        self.canvas.itemconfigure(self._canvas_image_id, image=self._photo)
+        return True
+
+    def _pause_animation(self):
+        if self._anim_im is not None:
+            self._stop_animation(hide_bar=False)
+        self._anim_paused = True
+        self._update_anim_buttons()
+        self._update_anim_bar()
+
+    def _resume_animation(self):
+        src = self._anim_src
+        if src is None:
+            return
+        if self._anim_done:
+            self._anim_frame = 0
+            self._anim_loops_done = 0
+            self._anim_done = False
+            try:
+                src.seek(0)
+            except Exception:
+                pass
+            if not self._display_anim_frame(src):
+                return
+        self._anim_paused = False
+        self._anim_im = src
+        self._update_anim_buttons()
+        self._update_anim_bar()
+        self._schedule_anim_tick()
+
+    def _anim_toggle_pause(self):
+        if self._anim_im is not None:
+            self._pause_animation()
+        else:
+            self._resume_animation()
+
+    def _anim_step(self, delta):
+        src = self._anim_src
+        if src is None:
+            return
+        self._anim_seek((self._anim_frame + delta) % src.n_frames)
+
+    def _anim_seek(self, frame):
+        src = self._anim_src
+        if src is None:
+            return
+        self._pause_animation()
+        frame = max(0, min(src.n_frames - 1, frame))
+        self._anim_frame = frame
+        self._anim_done = False
+        self._anim_loops_done = 0
+        try:
+            src.seek(frame)
+        except Exception:
+            return
+        if not self._display_anim_frame(src):
+            return
+        self._update_anim_bar()
+        self._update_anim_buttons()
+
+    def _on_anim_seek_press(self, event):
+        self._anim_seek_from_x(event.x)
+        return "break"
+
+    def _on_anim_seek_drag(self, event):
+        self._anim_seek_from_x(event.x)
+        return "break"
+
+    def _on_anim_seek_release(self, event):
+        return "break"
+
+    def _anim_seek_from_x(self, x):
+        src = self._anim_src
+        if src is None:
+            return
+        total = max(1, self._anim_total)
+        w = self._anim_bar_track.winfo_width()
+        frac = max(0.0, min(1.0, x / max(1, w)))
+        self._anim_seek(int(round(frac * (total - 1))))
+
     # ---------- 애니메이션 프레임 바 ----------
     def _show_anim_bar(self):
+        if not self.show_anim_bar:
+            return
         if getattr(self, "_anim_bar", None) is None:
             return
         if not self._anim_bar_visible:
             try:
-                self._anim_bar.place(relx=0.5, rely=1.0, anchor="s",
-                                     relwidth=0.33, height=30, y=-6)
+                self._anim_bar.place(x=10, rely=1.0, anchor="sw",
+                                     width=180, height=36, y=-10)
             except tk.TclError:
                 return
             self._anim_bar_visible = True
-            self._reposition_bottom_bar()
+        self._update_anim_buttons()
         self._update_anim_bar()
 
     def _hide_anim_bar(self):
@@ -3061,9 +3178,19 @@ class Viewer(tk.Tk):
         except tk.TclError:
             pass
         self._anim_bar_visible = False
-        self._reposition_bottom_bar()
+
+    def _update_anim_buttons(self):
+        if getattr(self, "_anim_play_btn", None) is None:
+            return
+        try:
+            self._anim_play_btn.config(
+                text="▮▮" if self._anim_im is not None else "▶")
+        except tk.TclError:
+            pass
 
     def _update_anim_bar(self):
+        if not self.show_anim_bar:
+            return
         if not getattr(self, "_anim_bar_visible", False):
             return
         try:
@@ -3072,7 +3199,7 @@ class Viewer(tk.Tk):
             if w > 1:
                 frac = 1.0 if self._anim_done else min(self._anim_frame + 1, total) / total
                 self._anim_bar_track.coords(self._anim_bar_fill, 0, 0,
-                                            max(1, int(w * frac)), 4)
+                                            max(1, int(w * frac)), 8)
             self._anim_bar_label.config(text=self._anim_bar_text())
         except tk.TclError:
             pass
@@ -3082,8 +3209,10 @@ class Viewer(tk.Tk):
         frame = min(self._anim_frame + 1, total)
         if self._anim_done:
             return tr("재생 완료 · %d회") % self._anim_plays
+        if self._anim_paused:
+            return tr("%d/%d · 일시정지") % (frame, total)
         if self._anim_plays == 0:
-            return tr("%d/%d · 무한 반복") % (frame, total)
+            return "%d/%d" % (frame, total)
         if self._anim_plays == 1:
             return tr("%d/%d · 1회 재생") % (frame, total)
         return tr("%d/%d · %d/%d회") % (
