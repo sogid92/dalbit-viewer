@@ -80,7 +80,6 @@ To add **Open with Dalbit Viewer** to the right-click menu for archives and to l
 1. Open **Settings** in the top bar.
 2. At the bottom under **Explorer Registration**, press **Register**.
 3. Open **Settings** → **Apps** → **Default apps** and change the photo viewer to **Dalbit Viewer**.
-   Press **Set default** to assign all supported extensions at once.
 
 **Registering does not change your default apps.** To make Dalbit Viewer the default, set it in Windows once after registering.
 
