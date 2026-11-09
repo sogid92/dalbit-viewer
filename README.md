@@ -7,8 +7,18 @@
 ## 요구 사항
 
 - Windows 10/11
-- Python 3.10 이상
+- Python 3.10 이상 (직접 실행하거나 EXE를 빌드할 때만 필요)
 - Pillow
+
+## 파이썬 없이 실행 (일반 사용자)
+
+[Releases](https://github.com/sogid92/dalbit-viewer/releases)에서 `DalbitViewer-<버전>-win64.zip`을 받습니다.
+
+1. ZIP을 풉니다.
+2. `DalbitViewer\DalbitViewer.exe`를 실행합니다.
+
+Python 설치가 필요 없습니다. 폴더 안의 파일을 지우거나 EXE만 따로 옮기면 실행되지 않으니 폴더째로 두세요.
+탐색기에서 더블클릭으로 열려면 폴더 안의 `register.bat`을 한 번 실행합니다.
 
 ## 실행
 

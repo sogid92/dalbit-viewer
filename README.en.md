@@ -7,8 +7,18 @@ A fullscreen image viewer for Windows. The interface stays out of the way until 
 ## Requirements
 
 - Windows 10/11
-- Python 3.10 or newer
+- Python 3.10 or newer (only to run from source or build the EXE)
 - Pillow
+
+## Run without Python (regular users)
+
+Download `DalbitViewer-<version>-win64.zip` from [Releases](https://github.com/sogid92/dalbit-viewer/releases).
+
+1. Extract the ZIP.
+2. Run `DalbitViewer\DalbitViewer.exe`.
+
+No Python installation is required. Do not move the EXE out of its folder or delete the other files, or it will not start.
+To open images by double-clicking in Explorer, run `register.bat` once from that folder.
 
 ## Run
 

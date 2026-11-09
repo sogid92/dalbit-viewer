@@ -43,4 +43,4 @@ if exist "%BACKUP%\viewed_folders.json" copy /y "%BACKUP%\viewed_folders.json" "
 rmdir /s /q "%BACKUP%"
 echo.
 echo Done: dist\DalbitViewer\DalbitViewer.exe (onedir: start faster, no extraction)
-pause
+if /i not "%~1"=="--no-pause" pause
