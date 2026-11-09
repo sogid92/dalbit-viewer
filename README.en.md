@@ -14,21 +14,21 @@ A lightweight Windows image viewer, about 14MB.
 
 ## Highlights
 
-### Browse folders in the order you want
+### Browse folders and archives in the order you want
 
-Organize comics or photos into folders, and it moves to the next folder automatically when you finish one.
+Organize comics or photos into folders, and it moves to the next item automatically when you finish one. Folders and archives (CBZ/ZIP) can sit in the same list and still follow name or date order.
 
 - Sort by name ascending/descending or date modified ascending/descending
 - Folders without images are skipped
-- Movement stays inside the parent of the folder you opened. It never escapes upward
-- Choose what happens at the end: loop, stop, or go to the next folder
+- Movement stays inside the parent folder of the item you opened. It never escapes upward
+- Choose what happens at the end: loop, stop, or go to the next item
 
-### Clean up the folders you finished in one go
+### Clean up the items you finished in one go
 
-Press `L` to open the viewed-folder list. Folders are recorded automatically as you browse.
+Press `L` to open the viewed list. Folders and archives are recorded automatically as you browse.
 
-- Check several folders, or use **Select All** to pick them all at once
-- **Move to Trash** sends the actual folders and their files to the Windows Recycle Bin
+- Check several items, or use **Select All** to pick them all at once
+- **Move to Trash** sends the actual folders and archives to the Windows Recycle Bin
 - **Remove from list** leaves the disk untouched and only cleans the list
 - Drive roots, the user home, Windows default folders, and system folders are protected from accidental deletion
 
@@ -109,7 +109,7 @@ Windows does not allow an app to change the default silently, so this has to be 
 | Alt+Enter | Toggle fullscreen / windowed |
 | Ctrl+O | Open a file |
 | Ctrl+S | Open settings |
-| L | Viewed folders |
+| L | Viewed items |
 | Move mouse to top | Show the top bar |
 | Move mouse to bottom | Show the bottom slider |
 
@@ -125,8 +125,8 @@ Open with the Settings button in the top bar or `Ctrl+S`. Changes apply and save
 - **Mouse wheel**: Choose the wheel / Ctrl+wheel roles
 - **Background**: Black / dark gray / white
 - **Bottom slider**: Auto / always / never
-- **Start/end behavior**: Loop / stop / go to next folder
-- **Next folder order**: Only enabled with "go to next folder"
+- **Start/end behavior**: Loop / stop / go to next item (folder or archive)
+- **Next item order**: Only enabled with "go to next item"
 
 ## Supported formats
 

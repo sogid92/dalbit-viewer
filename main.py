@@ -46,7 +46,7 @@ TRANSLATIONS = {
     "너비 맞춤": "Fit Width",
     "화면 맞춤": "Fit Screen",
     "원본 크기": "Original Size",
-    "열람한 폴더 목록": "Viewed Folders",
+    "열람한 폴더 목록": "Viewed Items",
     "창모드 (Alt+Enter)": "Windowed (Alt+Enter)",
     "전체화면 (Alt+Enter)": "Fullscreen (Alt+Enter)",
     "최소화": "Minimize",
@@ -55,7 +55,7 @@ TRANSLATIONS = {
     "닫기": "Close",
     "파일 열기...  (O)": "Open File...  (O)",
     "압축파일 열기...  (ZIP/CBZ)": "Open Archive...  (ZIP/CBZ)",
-    "열람한 폴더 목록...  (L)": "Viewed Folders...  (L)",
+    "열람한 폴더 목록...  (L)": "Viewed Items...  (L)",
     "보간기법 (확대/축소 품질)": "Interpolation (zoom quality)",
     "이미지 크기": "Image Size",
     "너비 맞춤 (8)": "Fit Width (8)",
@@ -76,8 +76,10 @@ TRANSLATIONS = {
     "처음/끝 동작": "Start/End Behavior",
     "반복 (끝에서 다시 처음으로)": "Loop (wrap around)",
     "멈춤 (끝에서 더 이상 이동 안 함)": "Stop at ends",
-    "다음 폴더로 이동": "Go to next folder",
-    "다음 폴더 순서": "Next Folder Order",
+    "다음 폴더로 이동": "Go to next item",
+    "다음 항목으로 이동 (폴더·압축파일)": "Go to next item (folder or archive)",
+    "다음 폴더 순서": "Next Item Order",
+    "다음 항목 순서": "Next Item Order",
     "이름 오름차순": "Name ascending",
     "이름 내림차순": "Name descending",
     "수정날짜 오름차순": "Date modified ascending",
@@ -111,27 +113,27 @@ TRANSLATIONS = {
         "Mouse wheel: navigate or zoom per settings (default: navigate)\n"
         "Ctrl + mouse wheel: zoom or navigate per settings (default: zoom)\n"
         "Esc: quit",
-    "열람한 폴더": "Viewed Folders",
-    "폴더를 체크한 뒤 아래 버튼을 누르세요. 휴지통 이동은 실제 삭제, 목록 제거는 이 목록에서만 숨깁니다.":
-        "Check folders, then use the buttons below. Move to Trash deletes them; Remove only hides them from this list.",
+    "열람한 목록": "Viewed Items",
+    "항목을 체크한 뒤 아래 버튼을 누르세요. 휴지통 이동은 실제 삭제, 목록 제거는 이 목록에서만 숨깁니다.":
+        "Check items, then use the buttons below. Move to Trash deletes them; Remove only hides them from this list.",
     "전체 선택": "Select All",
     "체크 %d개 / 전체 %d개": "%d checked / %d total",
-    "기록된 폴더가 없습니다. 끝까지 본 뒤 다음으로 넘어가면 추가됩니다.":
-        "No folders recorded yet. A folder is added after you reach its end and move on.",
-    "끝까지 본 폴더 %d개": "%d folders viewed to the end",
+    "기록된 항목이 없습니다. 끝까지 본 뒤 다음으로 넘어가면 추가됩니다.":
+        "No items recorded yet. An item is added after you reach its end and move on.",
+    "끝까지 본 항목 %d개": "%d items viewed to the end",
     "%d개를 목록에서 제거했습니다. (디스크는 그대로)":
         "Removed %d from the list. (Files on disk are unchanged)",
     "\n... 외 %d개": "\n... and %d more",
-    "\n\n현재 보고 있는 폴더가 포함되어 있어 화면이 비워집니다.":
-        "\n\nThe folder you are viewing is included, so the view will be cleared.",
-    "%d개 폴더를 휴지통으로 보냅니다.\n하위 파일도 함께 이동합니다.\n\n%s%s\n\n계속할까요?":
-        "Move %d folders to the Trash?\nContained files will move too.\n\n%s%s\n\nContinue?",
+    "\n\n현재 보고 있는 항목이 포함되어 있어 화면이 비워집니다.":
+        "\n\nThe item you are viewing is included, so the view will be cleared.",
+    "%d개 항목을 휴지통으로 보냅니다.\n폴더는 하위 파일도 함께 이동합니다.\n\n%s%s\n\n계속할까요?":
+        "Move %d items to the Trash?\nFiles inside folders will move too.\n\n%s%s\n\nContinue?",
     "휴지통으로 이동": "Move to Trash",
     "%d개를 휴지통으로 보냈습니다.": "Moved %d to the Trash.",
-    "휴지통으로 보낸 폴더가 없습니다.": "No folders were moved to the Trash.",
+    "휴지통으로 보낸 항목이 없습니다.": "No items were moved to the Trash.",
     " %d개 실패.": " %d failed.",
     "일부 폴더를 이동하지 못했습니다": "Some folders could not be moved",
-    "체크한 폴더를 휴지통으로 이동": "Move Checked to Trash",
+    "체크한 항목을 휴지통으로 이동": "Move Checked to Trash",
     "체크한 항목을 목록에서만 제거": "Remove Checked from List",
     "폴더 열기": "Open Folder",
     "압축파일 열기 (풀지 않고 보기)": "Open Archive (view without extracting)",
@@ -152,13 +154,13 @@ TRANSLATIONS = {
     "압축파일 안에 표시할 이미지가 없습니다.": "No displayable images in this archive.",
     "압축파일 열기 오류: %s": "Failed to open archive: %s",
     "지원하지 않는 파일 형식입니다: %s": "Unsupported file type: %s",
-    "다음 폴더: ": "Next folder: ",
-    "이전 폴더: ": "Previous folder: ",
-    "마지막 폴더입니다": "This is the last folder.",
-    "첫 번째 폴더입니다": "This is the first folder.",
+    "다음: ": "Next: ",
+    "이전: ": "Previous: ",
+    "마지막 항목입니다": "This is the last item.",
+    "첫 번째 항목입니다": "This is the first item.",
     "경로를 확인할 수 없습니다.": "Cannot resolve the path.",
-    "폴더가 존재하지 않습니다.": "The folder does not exist.",
-    "폴더가 아닙니다.": "This is not a folder.",
+    "경로가 존재하지 않습니다.": "The path does not exist.",
+    "폴더나 압축파일만 삭제할 수 있습니다.": "Only folders and archives can be deleted.",
     "드라이브 루트는 삭제할 수 없습니다.": "Drive roots cannot be deleted.",
     "사용자 홈 폴더는 삭제할 수 없습니다.": "The user home folder cannot be deleted.",
     "프로그램 폴더는 삭제할 수 없습니다.": "The program folder cannot be deleted.",
@@ -203,7 +205,7 @@ def detect_system_language():
 IMG_EXTS = {".bmp", ".jpg", ".jpeg", ".png", ".gif", ".webp", ".tiff", ".tif",
             ".ico", ".ppm", ".pgm", ".pnm", ".avif", ".jxl", ".dds", ".tga"}
 ARCHIVE_EXTS = {".zip", ".cbz"}
-VERSION = "1.0.0"  # EXE가 최신인지 확인용: EXE --version 으로 출력됨
+VERSION = "1.1.0"  # EXE가 최신인지 확인용: EXE --version 으로 출력됨
 
 
 def log_path():
@@ -315,7 +317,7 @@ DEFAULT_SETTINGS = {
     "wheel_mode": "navigate",   # navigate: 휠=이동+Ctrl+휠=줌 / zoom: 휠=줌+Ctrl+휠=이동
     "bg_color": "black",        # black / darkgray / white
     "slider_mode": "auto",      # auto: 마우스를 아래로 내리면 표시 / always: 항상 표시 / never: 표시 안 함
-    "end_behavior": "loop",     # loop: 처음/끝에서 반복 / stop: 처음/끝에서 멈춤 / next_folder: 다음 폴더로 이동
+    "end_behavior": "loop",     # loop: 처음/끝에서 반복 / stop: 처음/끝에서 멈춤 / next_folder: 다음 항목(폴더·압축파일)으로 이동
     "next_folder_sort": "name_asc",  # name_asc / name_desc / mtime_asc / mtime_desc
     "shortcuts": {},            # action_id -> key_id (예: "rotate": "r", "settings": "control-s")
 }
@@ -406,7 +408,7 @@ def save_viewed_folders(paths):
 
 
 def remember_viewed_folder(folder):
-    # 최근에 본 폴더를 맨 앞에 둔다. 같은 폴더는 한 번만.
+    # 최근에 본 폴더/압축파일을 맨 앞에 둔다. 같은 항목은 한 번만.
     try:
         p = str(Path(folder).resolve())
     except Exception:
@@ -433,6 +435,19 @@ def _path_is_under(child, parent):
     c = _path_key(child).rstrip("\\/")
     p = _path_key(parent).rstrip("\\/")
     return c == p or c.startswith(p + os.sep)
+
+
+def _view_key(path):
+    # 목록에 저장되는 값. 폴더는 그대로, 압축파일은 파일 경로 그대로 쓴다.
+    try:
+        return str(Path(path).resolve())
+    except Exception:
+        return str(path)
+
+
+def _archive_or_dir(path):
+    p = Path(path)
+    return p.is_dir() or p.suffix.lower() in ARCHIVE_EXTS
 
 
 def drop_nested_paths(paths):
@@ -482,6 +497,31 @@ def _shell_folder_guards():
     return guards
 
 
+def nav_siblings(root, sort_mode="name_asc"):
+    # 이동 범위 안의 후보: 폴더 + 압축파일. 압축파일도 순서 이동과 목록 기록 대상이다.
+    try:
+        entries = [p for p in Path(root).iterdir()
+                   if p.is_dir() or p.suffix.lower() in ARCHIVE_EXTS]
+    except Exception:
+        return []
+
+    def mtime(p):
+        try:
+            return p.stat().st_mtime
+        except OSError:
+            return 0
+
+    if sort_mode == "name_desc":
+        entries.sort(key=lambda p: p.name.lower(), reverse=True)
+    elif sort_mode == "mtime_asc":
+        entries.sort(key=lambda p: (mtime(p), p.name.lower()))
+    elif sort_mode == "mtime_desc":
+        entries.sort(key=lambda p: (-mtime(p), p.name.lower()))
+    else:  # name_asc
+        entries.sort(key=lambda p: p.name.lower())
+    return [str(p.resolve()) for p in entries]
+
+
 def deletion_block_reason(path):
     # 실제 삭제 전 안전 검사. 이유가 있으면 문자열, 허용이면 None.
     try:
@@ -489,9 +529,9 @@ def deletion_block_reason(path):
     except Exception:
         return tr("경로를 확인할 수 없습니다.")
     if not p.exists():
-        return tr("폴더가 존재하지 않습니다.")
-    if not p.is_dir():
-        return tr("폴더가 아닙니다.")
+        return tr("경로가 존재하지 않습니다.")
+    if not p.is_dir() and p.suffix.lower() not in ARCHIVE_EXTS:
+        return tr("폴더나 압축파일만 삭제할 수 있습니다.")
     if p.parent == p:
         return tr("드라이브 루트는 삭제할 수 없습니다.")
     app_dir = (Path(sys.executable).parent if getattr(sys, "frozen", False)
@@ -1750,10 +1790,10 @@ class Viewer(tk.Tk):
                         value="loop").pack(anchor="w")
         ttk.Radiobutton(end_frame, text=tr("멈춤 (끝에서 더 이상 이동 안 함)"), variable=end_var,
                         value="stop").pack(anchor="w")
-        ttk.Radiobutton(end_frame, text=tr("다음 폴더로 이동"), variable=end_var,
+        ttk.Radiobutton(end_frame, text=tr("다음 항목으로 이동 (폴더·압축파일)"), variable=end_var,
                         value="next_folder").pack(anchor="w")
 
-        sort_label = ttk.Label(sort_col, text=tr("다음 폴더 순서"))
+        sort_label = ttk.Label(sort_col, text=tr("다음 항목 순서"))
         sort_label.pack(anchor="w", pady=(0, 2))
         sort_var = tk.StringVar(value=cur.get("next_folder_sort", "name_asc"))
         sort_frame = ttk.Frame(sort_col)
@@ -2017,7 +2057,7 @@ class Viewer(tk.Tk):
         dlg.wait_window(dlg)
 
     def open_viewed_folders_dialog(self):
-        # 열람한 폴더 목록: 선택/전체를 휴지통으로 보내거나 목록에서만 제거한다.
+        # 열람한 목록: 폴더와 압축파일을 선택해 휴지통으로 보내거나 목록에서만 제거한다.
         self._modal_open = True
         self._show_cursor()
         try:
@@ -2028,7 +2068,7 @@ class Viewer(tk.Tk):
         self._cursor_hide_after = None
         try:
             dlg = tk.Toplevel(self)
-            dlg.title(tr("열람한 폴더"))
+            dlg.title(tr("열람한 목록"))
             try:
                 dlg.attributes("-topmost", True)
                 dlg.attributes("-alpha", 1.0)
@@ -2048,7 +2088,7 @@ class Viewer(tk.Tk):
             header_var = tk.StringVar()
             status_var = tk.StringVar()
             ttk.Label(dlg, textvariable=header_var).pack(anchor="w", padx=12, pady=(12, 2))
-            ttk.Label(dlg, text=tr("폴더를 체크한 뒤 아래 버튼을 누르세요. 휴지통 이동은 실제 삭제, 목록 제거는 이 목록에서만 숨깁니다."),
+            ttk.Label(dlg, text=tr("항목을 체크한 뒤 아래 버튼을 누르세요. 휴지통 이동은 실제 삭제, 목록 제거는 이 목록에서만 숨깁니다."),
                       foreground="#666666").pack(anchor="w", padx=12, pady=(0, 6))
 
             top = ttk.Frame(dlg)
@@ -2100,7 +2140,7 @@ class Viewer(tk.Tk):
                 if total:
                     status_var.set(tr("체크 %d개 / 전체 %d개") % (n, total))
                 else:
-                    status_var.set(tr("기록된 폴더가 없습니다. 끝까지 본 뒤 다음으로 넘어가면 추가됩니다."))
+                    status_var.set(tr("기록된 항목이 없습니다. 끝까지 본 뒤 다음으로 넘어가면 추가됩니다."))
 
             def toggle_all():
                 value = select_all_var.get()
@@ -2130,7 +2170,7 @@ class Viewer(tk.Tk):
                     cb.pack(anchor="w", fill="x", padx=4, pady=1)
                     cb.bind("<MouseWheel>", on_wheel)
                     vars[p] = v
-                header_var.set(tr("끝까지 본 폴더 %d개") % len(paths))
+                header_var.set(tr("끝까지 본 항목 %d개") % len(paths))
                 inner.update_idletasks()
                 canvas.configure(scrollregion=canvas.bbox("all"))
                 canvas.xview_moveto(0)
@@ -2156,10 +2196,10 @@ class Viewer(tk.Tk):
                 shown = "\n".join(targets[:6])
                 if len(targets) > 6:
                     shown += tr("\n... 외 %d개") % (len(targets) - 6)
-                extra = (tr("\n\n현재 보고 있는 폴더가 포함되어 있어 화면이 비워집니다.")
+                extra = (tr("\n\n현재 보고 있는 항목이 포함되어 있어 화면이 비워집니다.")
                          if current_hit else "")
-                msg = (tr("%d개 폴더를 휴지통으로 보냅니다.\n"
-                          "하위 파일도 함께 이동합니다.\n\n%s%s\n\n계속할까요?") %
+                msg = (tr("%d개 항목을 휴지통으로 보냅니다.\n"
+                          "폴더는 하위 파일도 함께 이동합니다.\n\n%s%s\n\n계속할까요?") %
                        (len(targets), shown, extra))
                 if not messagebox.askyesno(tr("휴지통으로 이동"), msg, parent=dlg):
                     return
@@ -2182,7 +2222,7 @@ class Viewer(tk.Tk):
                         self._clear_view()
                 rebuild()
                 msg = (tr("%d개를 휴지통으로 보냈습니다.") % len(deleted)
-                       if deleted else tr("휴지통으로 보낸 폴더가 없습니다."))
+                       if deleted else tr("휴지통으로 보낸 항목이 없습니다."))
                 if errors:
                     msg += tr(" %d개 실패.") % len(errors)
                 status_var.set(msg)
@@ -2194,7 +2234,7 @@ class Viewer(tk.Tk):
 
             btns = ttk.Frame(dlg)
             btns.pack(fill="x", padx=12, pady=(8, 12))
-            delete_btn = ttk.Button(btns, text=tr("체크한 폴더를 휴지통으로 이동"),
+            delete_btn = ttk.Button(btns, text=tr("체크한 항목을 휴지통으로 이동"),
                                     command=delete_checked, state="disabled")
             delete_btn.pack(side="left")
             remove_btn = ttk.Button(btns, text=tr("체크한 항목을 목록에서만 제거"),
@@ -2342,9 +2382,10 @@ class Viewer(tk.Tk):
             if first_ok is None:
                 self.items = []
                 return False
-            self._current_dir = str(p.parent.resolve())
+            # 압축파일 자체를 현재 항목으로 둔다. 목록에도 파일 경로가 기록된다.
+            self._current_dir = str(p.resolve())
             if not from_adjacent:
-                self._nav_root = str(p.parent.parent.resolve())
+                self._nav_root = str(p.parent.resolve())
             self._reset_view()
             self.index = first_ok
             if not from_adjacent:
@@ -2617,36 +2658,19 @@ class Viewer(tk.Tk):
 
     # ---------- 다음/이전 폴더 이동 ----------
     def _sibling_folders(self):
-        # 이동 범위(_nav_root) 아래의 폴더들만. 더 상위로 절대 안 올라감.
-        # _nav_root가 없으면(이전 동작 호환) 현재 폴더의 부모를 범위로 사용.
+        # 이동 범위(_nav_root) 안의 폴더 + 압축파일. 더 상위로 절대 안 올라감.
         if not self._current_dir:
             return []
-        try:
-            if getattr(self, "_nav_root", None):
-                root = Path(self._nav_root).resolve()
-            else:
-                root = Path(self._current_dir).resolve().parent
-            folders = [str(f.resolve()) for f in root.iterdir() if f.is_dir()]
-        except Exception:
-            return []
-        mode = getattr(self, "next_folder_sort", "name_asc")
-        if mode == "name_desc":
-            folders.sort(key=lambda x: Path(x).name.lower(), reverse=True)
-        elif mode == "mtime_asc":
-            folders.sort(key=lambda x: (os.path.getmtime(x), Path(x).name.lower()))
-        elif mode == "mtime_desc":
-            folders.sort(key=lambda x: (-os.path.getmtime(x), Path(x).name.lower()))
-        else:  # name_asc
-            folders.sort(key=lambda x: Path(x).name.lower())
-        return folders
+        root = getattr(self, "_nav_root", None) or Path(self._current_dir).parent
+        return nav_siblings(root, getattr(self, "next_folder_sort", "name_asc"))
 
 
     def _show_folder_toast(self, folder_path, direction):
-        # 폴더 이동 시 오른쪽 아래 구석에 작게 2초간 뜨는 팝업 안내
+        # 폴더/압축파일 이동 시 오른쪽 아래 구석에 작게 2초간 뜨는 팝업 안내
         name = Path(folder_path).name
         if len(name) > 30:
             name = name[:27] + "..."
-        label = tr("다음 폴더: " if direction > 0 else "이전 폴더: ") + name
+        label = tr("다음: " if direction > 0 else "이전: ") + name
         self._show_toast_text(label)
 
     def _show_toast_text(self, label):
@@ -2705,7 +2729,7 @@ class Viewer(tk.Tk):
             pass
 
     def _go_to_adjacent_folder(self, direction):
-        # direction: +1 다음 폴더 / -1 이전 폴더. 빈 폴더는 건너뛰고 계속 찾음.
+        # direction: +1 다음 항목 / -1 이전 항목. 폴더와 압축파일을 같은 순서로 넘긴다.
         siblings = self._sibling_folders()
         if not siblings or not self._current_dir:
             return False
@@ -2723,7 +2747,7 @@ class Viewer(tk.Tk):
             target = siblings[j]
             # 이동 범위(_nav_root) 밖으로는 절대 안 나감. 범위를 다 보면 여기서 멈춤.
             if self._load_path(target, from_adjacent=True):
-                # 끝까지 본 폴더만 목록에 남긴다. 다음 폴더 로드가 성공한 뒤 기록.
+                # 끝까지 본 항목만 목록에 남긴다. 다음 항목 로드가 성공한 뒤 기록.
                 remember_viewed_folder(leaving)
                 # 다음 폴더로 이동했으면 첫 이미지부터 (이전 폴더는 마지막 이미지부터)
                 if direction < 0:
@@ -2737,11 +2761,11 @@ class Viewer(tk.Tk):
             j += step
         # 더 이상 이동할 곳이 없음 (범위 끝)
         if direction > 0:
-            # 마지막 폴더를 끝까지 본 뒤 다음을 누른 경우에도 기록
+            # 마지막 항목을 끝까지 본 뒤 다음을 누른 경우에도 기록
             remember_viewed_folder(self._current_dir)
-            self._show_toast_text(tr("마지막 폴더입니다"))
+            self._show_toast_text(tr("마지막 항목입니다"))
         else:
-            self._show_toast_text(tr("첫 번째 폴더입니다"))
+            self._show_toast_text(tr("첫 번째 항목입니다"))
         return False
 
     def prev(self):
