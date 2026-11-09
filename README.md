@@ -90,7 +90,9 @@ python main.py [이미지 / 폴더 / ZIP / CBZ 경로]
 2. 연결할 확장자(예: `.jpg`, `.png`)를 검색해 클릭합니다.
 3. 목록에서 **달빛뷰어**를 선택합니다.
 
-확장자마다 따로 지정해야 합니다. 연결되는 확장자: BMP, JPG, JPEG, JFIF, PNG, GIF, WebP, TIFF, AVIF, ICO, PPM, JXL, DDS, TGA, CBZ
+확장자마다 따로 지정해야 합니다. 연결되는 확장자: BMP, JPG, JPEG, JFIF, PNG, GIF, WebP, TIFF, AVIF, ICO, PPM, JXL, DDS, TGA, CBZ, ZIP
+
+압축파일(CBZ/ZIP)은 우클릭 메뉴에 **달빛뷰어로 열기** 항목이 추가됩니다. 기본 앱은 바꾸지 않으므로 기존 압축 프로그램 연결은 그대로 유지됩니다.
 
 Windows 정책상 프로그램이 기본 앱을 직접 바꿀 수는 없어서, 위 과정을 한 번은 직접 거쳐야 합니다. 한 번 지정하면 이후부터는 더블클릭으로 열립니다.
 

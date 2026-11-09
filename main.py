@@ -205,7 +205,7 @@ def detect_system_language():
 IMG_EXTS = {".bmp", ".jpg", ".jpeg", ".png", ".gif", ".webp", ".tiff", ".tif",
             ".ico", ".ppm", ".pgm", ".pnm", ".avif", ".jxl", ".dds", ".tga"}
 ARCHIVE_EXTS = {".zip", ".cbz"}
-VERSION = "1.1.1"  # EXE가 최신인지 확인용: EXE --version 으로 출력됨
+VERSION = "1.2.0"  # EXE가 최신인지 확인용: EXE --version 으로 출력됨
 
 
 def log_path():
@@ -2892,8 +2892,9 @@ PROG_ID = "DalbitViewer.Image"
 APP_REG_NAME = "DalbitViewer"
 ASSOC_EXTS = [".bmp", ".jpg", ".jpeg", ".jfif", ".jpe", ".png", ".gif", ".webp",
               ".tiff", ".tif", ".avif", ".ico", ".ppm", ".pgm", ".pnm",
-              ".jxl", ".dds", ".tga", ".cbz"]
-# .zip은 일부러 제외: 압축 프로그램 연결을 빼앗지 않기 위해. .cbz(만화 압축)는 포함.
+              ".jxl", ".dds", ".tga", ".cbz", ".zip"]
+# 압축파일은 우클릭 메뉴에 "달빛뷰어로 열기"를 직접 추가한다(ARCHIVE_EXTS).
+# .zip은 기본 앱을 빼앗지 않고, 기존 압축 프로그램 연결을 그대로 둔다.
 
 
 def print_usage():
@@ -2949,6 +2950,13 @@ def register_file_association():
             reg_set(r"Software\Classes\%s\OpenWithProgids" % ext, PROG_ID, "")
             reg_set(r"Software\Classes\Applications\DalbitViewer.exe\SupportedTypes",
                     ext, "")
+        # 우클릭 메뉴에 "달빛뷰어로 열기"를 직접 추가한다.
+        # 기본 앱을 바꾸지 않으므로 압축 프로그램 연결을 빼앗지 않는다.
+        for ext in ARCHIVE_EXTS:
+            open_cmd = r"Software\Classes\SystemFileAssociations\%s\shell\DalbitViewer" % ext
+            reg_set(open_cmd, "", "달빛뷰어로 열기")
+            reg_set(open_cmd, "Icon", '"%s",0' % exe)
+            reg_set(open_cmd + r"\command", "", command)
         # 설정 > 기본 앱에 나타나게 하는 Capabilities 등록
         reg_set(r"Software\DalbitViewer\Capabilities", "ApplicationName",
                 "달빛뷰어")
@@ -3018,6 +3026,8 @@ def unregister_file_association():
     reg_delete_value(r"Software\RegisteredApplications", APP_REG_NAME)
     for ext in ASSOC_EXTS:
         reg_delete_value(r"Software\Classes\%s\OpenWithProgids" % ext, PROG_ID)
+    for ext in ARCHIVE_EXTS:
+        reg_delete_tree(r"Software\Classes\SystemFileAssociations\%s\shell\DalbitViewer" % ext)
     print("파일 연결 해제 완료.")
     return 0
 

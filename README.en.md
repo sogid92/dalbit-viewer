@@ -90,7 +90,9 @@ To open images in Dalbit Viewer by double-clicking, register it in Windows once.
 2. Search for the extension (for example `.jpg`, `.png`) and click it.
 3. Select **Dalbit Viewer** from the list.
 
-Each extension must be set separately. Supported associations: BMP, JPG, JPEG, JFIF, PNG, GIF, WebP, TIFF, AVIF, ICO, PPM, JXL, DDS, TGA, CBZ
+Each extension must be set separately. Supported associations: BMP, JPG, JPEG, JFIF, PNG, GIF, WebP, TIFF, AVIF, ICO, PPM, JXL, DDS, TGA, CBZ, ZIP
+
+Archives (CBZ/ZIP) also get a **Open with Dalbit Viewer** entry in the right-click menu. The default app is left unchanged, so an existing archive program keeps its association.
 
 Windows does not allow an app to change the default silently, so this has to be done once manually. After that, double-clicking opens the viewer.
 
