@@ -1,8 +1,10 @@
 # Dalbit Viewer
 
-**No ads. No account. No internet connection.**
-**A viewer that focuses on viewing.**
-If toolbars covering the image bother you — it opens fullscreen and the UI appears only when you need it. A Windows image viewer that steps through folders in order without extracting ZIP files. 14.6MB, no installation.
+Undisturbed time with your images.
+
+No ads, no installation. The UI never blocks your view — from the moment you open an image, focus only on looking.
+
+A lightweight Windows image viewer, about 14MB.
 
 **한국어:** [README.md](README.md)
 
