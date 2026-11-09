@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="icon.png" width="128" alt="Dalbit Viewer icon">
+</p>
+
 # Dalbit Viewer
 
 Undisturbed time with your images.

@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="icon.png" width="128" alt="Dalbit Viewer icon">
+</p>
+
 # 달빛뷰어 (Dalbit Viewer)
 
 이미지를 보는 시간, 방해받지 않도록.
