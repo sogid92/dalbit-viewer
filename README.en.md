@@ -16,8 +16,9 @@ A lightweight Windows image viewer, about 14MB.
 
 ### Browse folders and archives in the order you want
 
-Organize comics or photos into folders, and it moves to the next item automatically when you finish one. Folders and archives (CBZ/ZIP) can sit in the same list and still follow name or date order.
+Organize comics or photos into folders, and it moves to the next item automatically when you finish one.
 
+- Folders step to folders, and archives (CBZ/ZIP) step to archives. The two never mix
 - Sort by name ascending/descending or date modified ascending/descending
 - Folders without images are skipped
 - Movement stays inside the parent folder of the item you opened. It never escapes upward

@@ -23,21 +23,31 @@ class NavItemsTest(unittest.TestCase):
                 z.write(page, "1.png")
             os.utime(self.tmp / name, (stamp, stamp))
 
-    def names(self, mode):
-        return [Path(p).name for p in main.nav_siblings(self.tmp, mode)]
+    def names(self, mode, kind=None):
+        return [Path(p).name for p in main.nav_siblings(self.tmp, mode, kind=kind)]
 
-    def test_mixes_folders_and_archives(self):
-        self.assertEqual(self.names("name_asc"), ["a", "b.cbz", "c", "d.cbz"])
+    def test_folders_and_archives_are_separate_groups(self):
+        self.assertEqual(self.names("name_asc", "dir"), ["a", "c"])
+        self.assertEqual(self.names("name_asc", "archive"), ["b.cbz", "d.cbz"])
 
-    def test_name_desc(self):
-        self.assertEqual(self.names("name_desc"), ["d.cbz", "c", "b.cbz", "a"])
+    def test_name_desc_within_each_group(self):
+        self.assertEqual(self.names("name_desc", "dir"), ["c", "a"])
+        self.assertEqual(self.names("name_desc", "archive"), ["d.cbz", "b.cbz"])
 
     def test_mtime_sorts_archives_by_date(self):
-        self.assertEqual(self.names("mtime_asc")[:2], ["b.cbz", "d.cbz"])
+        self.assertEqual(self.names("mtime_asc", "archive"), ["b.cbz", "d.cbz"])
+        self.assertEqual(self.names("mtime_desc", "archive"), ["d.cbz", "b.cbz"])
+
+    def test_kind_is_detected_from_path(self):
+        self.assertEqual(main.nav_kind(self.tmp / "a"), "dir")
+        self.assertEqual(main.nav_kind(self.tmp / "b.cbz"), "archive")
+        self.assertEqual(main.nav_kind(self.tmp / "d.ZIP"), "archive")
 
     def test_ignores_other_files(self):
         (self.tmp / "notes.txt").write_text("x", encoding="utf-8")
         self.assertNotIn("notes.txt", self.names("name_asc"))
+        self.assertNotIn("notes.txt", self.names("name_asc", "dir"))
+        self.assertNotIn("notes.txt", self.names("name_asc", "archive"))
 
     def test_archive_is_deletable(self):
         self.assertIsNone(main.deletion_block_reason(self.tmp / "b.cbz"))

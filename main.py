@@ -205,7 +205,7 @@ def detect_system_language():
 IMG_EXTS = {".bmp", ".jpg", ".jpeg", ".png", ".gif", ".webp", ".tiff", ".tif",
             ".ico", ".ppm", ".pgm", ".pnm", ".avif", ".jxl", ".dds", ".tga"}
 ARCHIVE_EXTS = {".zip", ".cbz"}
-VERSION = "1.1.0"  # EXE가 최신인지 확인용: EXE --version 으로 출력됨
+VERSION = "1.1.1"  # EXE가 최신인지 확인용: EXE --version 으로 출력됨
 
 
 def log_path():
@@ -497,13 +497,24 @@ def _shell_folder_guards():
     return guards
 
 
-def nav_siblings(root, sort_mode="name_asc"):
-    # 이동 범위 안의 후보: 폴더 + 압축파일. 압축파일도 순서 이동과 목록 기록 대상이다.
+def nav_kind(path):
+    # 이동 종류: 폴더는 폴더끼리, 압축파일은 압축파일끼리만 이웃이 된다.
+    try:
+        p = Path(path)
+    except Exception:
+        return "dir"
+    return "archive" if p.suffix.lower() in ARCHIVE_EXTS else "dir"
+
+
+def nav_siblings(root, sort_mode="name_asc", kind=None):
+    # 이동 범위 안의 후보. kind를 주면 같은 종류만 (dir/archive).
     try:
         entries = [p for p in Path(root).iterdir()
                    if p.is_dir() or p.suffix.lower() in ARCHIVE_EXTS]
     except Exception:
         return []
+    if kind is not None:
+        entries = [p for p in entries if nav_kind(p) == kind]
 
     def mtime(p):
         try:
@@ -2658,11 +2669,12 @@ class Viewer(tk.Tk):
 
     # ---------- 다음/이전 폴더 이동 ----------
     def _sibling_folders(self):
-        # 이동 범위(_nav_root) 안의 폴더 + 압축파일. 더 상위로 절대 안 올라감.
+        # 이동 범위(_nav_root) 안에서 현재 항목과 같은 종류만 넘긴다.
         if not self._current_dir:
             return []
         root = getattr(self, "_nav_root", None) or Path(self._current_dir).parent
-        return nav_siblings(root, getattr(self, "next_folder_sort", "name_asc"))
+        return nav_siblings(root, getattr(self, "next_folder_sort", "name_asc"),
+                            kind=nav_kind(self._current_dir))
 
 
     def _show_folder_toast(self, folder_path, direction):
