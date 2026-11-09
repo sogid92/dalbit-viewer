@@ -203,7 +203,7 @@ def detect_system_language():
 IMG_EXTS = {".bmp", ".jpg", ".jpeg", ".png", ".gif", ".webp", ".tiff", ".tif",
             ".ico", ".ppm", ".pgm", ".pnm", ".avif", ".jxl", ".dds", ".tga"}
 ARCHIVE_EXTS = {".zip", ".cbz"}
-VERSION = "2026-11-09.10"  # EXE가 최신인지 확인용: EXE --version 으로 출력됨
+VERSION = "1.0.0"  # EXE가 최신인지 확인용: EXE --version 으로 출력됨
 
 
 def log_path():
