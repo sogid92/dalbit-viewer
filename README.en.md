@@ -4,23 +4,13 @@ A fullscreen image viewer for Windows. The interface stays out of the way until 
 
 **한국어:** [README.md](README.md)
 
-## Requirements
+## How to run
 
-- Windows 10/11
-- Python 3.10 or newer (only to run from source or build the EXE)
-- Pillow
+**Run the EXE**
 
-## Run without Python (regular users)
+Download `DalbitViewer-<version>-win64.zip` from [Releases](https://github.com/sogid92/dalbit-viewer/releases), extract it, and run `DalbitViewer\DalbitViewer.exe`. Keep the folder intact; the EXE will not start if it is moved out or the other files are deleted.
 
-Download `DalbitViewer-<version>-win64.zip` from [Releases](https://github.com/sogid92/dalbit-viewer/releases).
-
-1. Extract the ZIP.
-2. Run `DalbitViewer\DalbitViewer.exe`.
-
-No Python installation is required. Do not move the EXE out of its folder or delete the other files, or it will not start.
-To open images by double-clicking in Explorer, run `register.bat` once from that folder.
-
-## Run
+**Run from source** (Python 3.10 or newer)
 
 ```bat
 pip install -r requirements.txt
@@ -32,8 +22,6 @@ Without a path, a file picker opens. You can open a folder or an archive instead
 ## Build an EXE
 
 Double-click `build_exe.bat`. The result is `dist\DalbitViewer\DalbitViewer.exe`.
-
-To run on a PC without Python, copy the whole `dist\DalbitViewer` folder. The EXE alone will not run. To register the file association on that PC too, put `register.bat` in the same folder and run it.
 
 ## Open from Explorer
 
