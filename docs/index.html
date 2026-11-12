@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<title>달빛뷰어 - Windows 무료 이미지 뷰어 (Dalbit Viewer)</title>
+<meta name="description" content="광고 없는 초경량 Windows 이미지 뷰어. JPG·PNG·GIF·WebP·AVIF·TIFF·BMP 지원, 만화책 CBZ·ZIP 압축파일을 풀지 않고 바로 보기, GIF/WebP 애니메이션 재생. 설치 없이 실행하는 15MB 무료 프로그램.">
+<meta name="keywords" content="달빛뷰어, Dalbit Viewer, Windows 이미지 뷰어, 무료 이미지 뷰어, 광고 없는 이미지 뷰어, 만화책 뷰어, 만화 보는 프로그램, CBZ 뷰어, ZIP 이미지 뷰어, 압축파일 이미지 뷰어, GIF 뷰어, WebP 뷰어, AVIF 뷰어, 사진 뷰어, 이미지 브라우저, portable image viewer, comic book reader, lightweight image viewer">
+<meta name="author" content="sogid92">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://sogid92.github.io/dalbit-viewer/">
+
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="달빛뷰어 (Dalbit Viewer)">
+<meta property="og:title" content="달빛뷰어 - Windows 무료 이미지 뷰어">
+<meta property="og:description" content="광고 없는 초경량 이미지 뷰어. 만화책 CBZ/ZIP을 풀지 않고 바로 보고, GIF/WebP 애니메이션도 재생합니다. 설치 없이 15MB.">
+<meta property="og:url" content="https://sogid92.github.io/dalbit-viewer/">
+<meta property="og:image" content="https://sogid92.github.io/dalbit-viewer/img/screenshot-comic.png">
+<meta property="og:locale" content="ko_KR">
+<meta property="og:locale:alternate" content="en_US">
+
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="달빛뷰어 - Windows 무료 이미지 뷰어">
+<meta name="twitter:description" content="광고 없는 초경량 이미지 뷰어. 만화책 CBZ/ZIP 바로 보기, GIF/WebP 애니메이션 재생. 설치 없이 15MB.">
+<meta name="twitter:image" content="https://sogid92.github.io/dalbit-viewer/img/screenshot-comic.png">
+
+<link rel="icon" href="img/icon.png" type="image/png">
+<link rel="apple-touch-icon" href="img/icon-512.png">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "달빛뷰어",
+  "alternateName": "Dalbit Viewer",
+  "applicationCategory": "MultimediaApplication",
+  "applicationSubCategory": "Image Viewer",
+  "operatingSystem": "Windows 10, Windows 11",
+  "softwareVersion": "1.3.5",
+  "fileSize": "15MB",
+  "inLanguage": ["ko", "en"],
+  "description": "광고 없는 초경량 Windows 이미지 뷰어. JPG, PNG, GIF, WebP, AVIF, TIFF, BMP 지원. 만화책 CBZ/ZIP 압축파일을 풀지 않고 바로 볼 수 있고 GIF/WebP 애니메이션을 재생합니다.",
+  "url": "https://sogid92.github.io/dalbit-viewer/",
+  "downloadUrl": "https://github.com/sogid92/dalbit-viewer/releases/latest",
+  "codeRepository": "https://github.com/sogid92/dalbit-viewer",
+  "license": "https://github.com/sogid92/dalbit-viewer",
+  "image": "https://sogid92.github.io/dalbit-viewer/img/screenshot-comic.png",
+  "offers": {
+    "@type": "Offer",
+    "price": "0",
+    "priceCurrency": "KRW"
+  },
+  "featureList": [
+    "JPG, PNG, GIF, WebP, AVIF, TIFF, BMP 이미지 보기",
+    "만화책 CBZ, ZIP 압축파일을 풀지 않고 바로 보기",
+    "GIF, WebP 애니메이션 재생",
+    "전체화면 감상과 폴더·압축파일 자동 넘김",
+    "광고와 추적 없음, 설치 없이 실행"
+  ]
+}
+</script>
+
+<style>
+  :root {
+    --bg: #0d1015;
+    --panel: #151a22;
+    --line: #232b36;
+    --text: #e8edf5;
+    --muted: #9aa7b8;
+    --accent: #e8d9a8;
+    --accent-dim: #b8a877;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Malgun Gothic", "맑은 고딕", -apple-system, "Segoe UI", system-ui, sans-serif;
+    line-height: 1.7;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1000px; margin: 0 auto; padding: 0 24px; }
+  a { color: var(--accent); }
+
+  header { padding: 72px 0 56px; text-align: center; }
+  .app-icon {
+    width: 112px; height: 112px; border-radius: 22px;
+    box-shadow: 0 12px 40px rgba(0,0,0,.55), 0 0 0 1px rgba(255,255,255,.06);
+    display: block; margin: 0 auto 26px;
+  }
+  h1 {
+    font-size: 42px; line-height: 1.25; margin: 0 0 10px;
+    letter-spacing: -0.02em; font-weight: 700;
+  }
+  h1 .en { display: block; font-size: 15px; font-weight: 500; color: var(--muted); letter-spacing: .16em; margin-top: 12px; text-transform: uppercase; }
+  .lede { font-size: 18px; color: var(--muted); margin: 0 auto 8px; max-width: 620px; }
+  .lede strong { color: var(--text); }
+  .cta { margin-top: 34px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+  .btn {
+    display: inline-block; padding: 15px 30px; border-radius: 10px;
+    text-decoration: none; font-weight: 700; font-size: 16px;
+    transition: transform .15s ease, background .15s ease;
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn-primary { background: var(--accent); color: #171410; }
+  .btn-primary:hover { background: #f2e6bd; }
+  .btn-ghost { border: 1px solid var(--line); color: var(--text); background: transparent; }
+  .btn-ghost:hover { border-color: #3a4657; }
+  .meta { margin-top: 18px; font-size: 13px; color: #6d7b8d; }
+
+  section { padding: 60px 0; border-top: 1px solid var(--line); }
+  h2 { font-size: 26px; margin: 0 0 8px; letter-spacing: -0.01em; }
+  .sub { color: var(--muted); margin: 0 0 30px; font-size: 15px; }
+
+  .shot {
+    width: 100%; border-radius: 12px; display: block;
+    border: 1px solid var(--line);
+    box-shadow: 0 20px 60px rgba(0,0,0,.5);
+  }
+  figure { margin: 0 0 34px; }
+  figcaption { font-size: 13px; color: #6d7b8d; margin-top: 10px; text-align: center; }
+
+  .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  .card {
+    background: var(--panel); border: 1px solid var(--line);
+    border-radius: 12px; padding: 22px;
+  }
+  .card h3 { margin: 0 0 8px; font-size: 16px; }
+  .card p { margin: 0; font-size: 14px; color: var(--muted); line-height: 1.65; }
+
+  .formats { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+  .tag {
+    font-size: 12px; padding: 5px 11px; border-radius: 999px;
+    background: #1b2230; border: 1px solid #2a3546; color: #b9c6d8;
+    font-family: ui-monospace, "Consolas", monospace; letter-spacing: .02em;
+  }
+  .tag.na { color: #6d7b8d; border-color: #1f2733; background: transparent; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); }
+  th { color: var(--muted); font-weight: 600; font-size: 13px; }
+  td code {
+    font-family: ui-monospace, "Consolas", monospace; font-size: 13px;
+    background: #1b2230; padding: 2px 7px; border-radius: 5px; border: 1px solid #2a3546;
+  }
+
+  footer { padding: 50px 0 70px; border-top: 1px solid var(--line); color: #6d7b8d; font-size: 13px; text-align: center; }
+  footer a { color: #8b98a9; text-decoration: none; }
+  footer a:hover { color: var(--accent); }
+
+  @media (max-width: 640px) {
+    header { padding: 48px 0 40px; }
+    h1 { font-size: 30px; }
+    .lede { font-size: 16px; }
+    .btn { padding: 13px 22px; font-size: 15px; }
+    section { padding: 44px 0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<header>
+  <img class="app-icon" src="img/icon-512.png" width="112" height="112"
+       alt="달빛뷰어 Dalbit Viewer - Windows 무료 이미지 뷰어 아이콘">
+  <h1>
+    달빛뷰어
+    <span class="en">Dalbit Viewer</span>
+  </h1>
+  <p class="lede">
+    <strong>광고 없는 초경량 Windows 이미지 뷰어.</strong><br>
+    JPG·PNG·GIF·WebP·AVIF·TIFF·BMP를 열고, 만화책 <strong>CBZ·ZIP을 풀지 않고</strong> 바로 봅니다.
+  </p>
+  <p class="lede" style="font-size:15px">설치 없음 · 인터넷 연결 없음 · 약 15MB</p>
+
+  <div class="cta">
+    <a class="btn btn-primary" href="https://github.com/sogid92/dalbit-viewer/releases/latest">
+      최신 버전 다운로드
+    </a>
+    <a class="btn btn-ghost" href="https://github.com/sogid92/dalbit-viewer">
+      GitHub 저장소
+    </a>
+  </div>
+  <p class="meta">Windows 10 / 11 64bit · 압축을 풀고 DalbitViewer.exe 실행</p>
+</header>
+
+<section id="screens">
+  <h2>화면</h2>
+  <p class="sub">전체화면으로 열리고, 조작할 때만 UI가 나타납니다.</p>
+
+  <figure>
+    <img class="shot" src="img/screenshot-comic.png" loading="lazy"
+         alt="달빛뷰어로 만화책 CBZ 압축파일을 풀지 않고 보는 화면. 4칸 만화 페이지가 전체화면으로 표시됨">
+    <figcaption>만화책 압축파일(CBZ/ZIP)을 풀지 않고 바로 봅니다</figcaption>
+  </figure>
+
+  <figure>
+    <img class="shot" src="img/screenshot-photo.png" loading="lazy"
+         alt="달빛뷰어로 사진을 화면에 맞춰 보는 화면. 해와 산이 있는 풍경 사진이 가운데 정렬됨">
+    <figcaption>사진은 화면에 맞춰 크게, 픽셀아트는 원본 그대로</figcaption>
+  </figure>
+
+  <figure>
+    <img class="shot" src="img/screenshot-slider.png" loading="lazy"
+         alt="달빛뷰어 하단 슬라이드바로 현재 폴더의 이미지를 빠르게 넘기는 화면">
+    <figcaption>하단 슬라이드바로 폴더 안을 빠르게 건너뜁니다</figcaption>
+  </figure>
+
+  <figure>
+    <img class="shot" src="img/screenshot-settings.png" loading="lazy"
+         alt="달빛뷰어 설정 창. 언어, 보간기법, 이미지 크기, 휠 동작, 배경색, 슬라이드바, GIF/WebP 프레임 바, 처음/끝 동작을 설정">
+    <figcaption>설정은 즉시 적용되고 다음 실행에도 유지됩니다</figcaption>
+  </figure>
+</section>
+
+<section id="features">
+  <h2>주요 기능</h2>
+  <p class="sub">이미지를 보는 일에만 집중할 수 있게 만든 뷰어입니다.</p>
+
+  <div class="grid">
+    <div class="card">
+      <h3>만화책 압축파일 바로 보기</h3>
+      <p>CBZ·ZIP을 풀지 않고 안의 이미지를 순서대로 넘깁니다. 폴더를 정리할 필요가 없습니다.</p>
+    </div>
+    <div class="card">
+      <h3>폴더·압축파일 자동 넘김</h3>
+      <p>하나를 다 보면 자동으로 다음 항목으로 넘어갑니다. 폴더는 폴더끼리, 압축파일은 압축파일끼리 이어지고 섞이지 않습니다.</p>
+    </div>
+    <div class="card">
+      <h3>광고도 추적도 없음</h3>
+      <p>인터넷에 연결하지 않습니다. 계정도, 광고도, 사용 기록 전송도 없습니다.</p>
+    </div>
+    <div class="card">
+      <h3>설치 없이 실행</h3>
+      <p>압축을 풀고 EXE를 실행하면 끝. 레지스트리는 연결 프로그램으로 등록할 때만 건드립니다.</p>
+    </div>
+    <div class="card">
+      <h3>애니메이션 재생</h3>
+      <p>GIF·WebP 애니메이션을 재생하고, 하단 왼쪽 프레임 바에서 일시정지·프레임 이동을 합니다.</p>
+    </div>
+    <div class="card">
+      <h3>다 본 항목 한 번에 정리</h3>
+      <p>열람한 폴더·압축파일 목록에서 골라 휴지통으로 보냅니다. 드라이브 루트나 시스템 폴더는 막혀 있습니다.</p>
+    </div>
+  </div>
+</section>
+
+<section id="formats">
+  <h2>지원 형식</h2>
+  <p class="sub">Pillow가 지원하는 이미지 형식을 그대로 엽니다.</p>
+
+  <h3 style="font-size:15px;margin:0 0 10px;color:var(--muted)">이미지</h3>
+  <div class="formats">
+    <span class="tag">JPG</span><span class="tag">JPEG</span><span class="tag">PNG</span>
+    <span class="tag">GIF</span><span class="tag">WebP</span><span class="tag">AVIF</span>
+    <span class="tag">TIFF</span><span class="tag">BMP</span><span class="tag">ICO</span>
+    <span class="tag">PPM</span><span class="tag">PGM</span><span class="tag">PNM</span>
+    <span class="tag">DDS</span><span class="tag">TGA</span><span class="tag">JXL</span>
+  </div>
+
+  <h3 style="font-size:15px;margin:26px 0 10px;color:var(--muted)">압축파일 (풀지 않고 보기)</h3>
+  <div class="formats">
+    <span class="tag">ZIP</span><span class="tag">CBZ</span>
+  </div>
+
+  <h3 style="font-size:15px;margin:26px 0 10px;color:var(--muted)">지원하지 않음</h3>
+  <div class="formats">
+    <span class="tag na">HEIC</span><span class="tag na">HEIF</span>
+    <span class="tag na">RAW</span><span class="tag na">RAR</span><span class="tag na">CBR</span>
+  </div>
+</section>
+
+<section id="controls">
+  <h2>조작</h2>
+  <p class="sub">키보드와 마우스만으로 모든 동작을 합니다.</p>
+  <table>
+    <tr><th>조작</th><th>동작</th></tr>
+    <tr><td><code>← → ↑ ↓</code> / <code>WASD</code></td><td>확대 상태에서 화면 이동, 끝에서 이전·다음</td></tr>
+    <tr><td><code>PageUp</code> / <code>PageDown</code></td><td>이전 / 다음</td></tr>
+    <tr><td><code>Home</code> / <code>End</code></td><td>처음 / 마지막</td></tr>
+    <tr><td>마우스 휠</td><td>설정에 따라 이전·다음 또는 확대·축소</td></tr>
+    <tr><td><code>Ctrl</code> + 휠</td><td>설정에 따라 확대·축소 또는 이전·다음</td></tr>
+    <tr><td><code>9</code> / <code>8</code> / <code>0</code></td><td>화면 맞춤 / 너비 맞춤 / 원본 크기</td></tr>
+    <tr><td>더블클릭</td><td>화면 맞춤 ↔ 원본 크기</td></tr>
+    <tr><td><code>Alt</code>+<code>Enter</code></td><td>전체화면 ↔ 창모드</td></tr>
+    <tr><td><code>Ctrl</code>+<code>O</code> / <code>Ctrl</code>+<code>S</code></td><td>파일 열기 / 설정</td></tr>
+    <tr><td><code>L</code></td><td>열람한 목록</td></tr>
+    <tr><td><code>Esc</code></td><td>종료</td></tr>
+  </table>
+</section>
+
+<section id="install">
+  <h2>설치와 실행</h2>
+  <p class="sub">Python이 필요 없습니다.</p>
+  <ol style="color:var(--muted);font-size:15px;padding-left:22px">
+    <li><a href="https://github.com/sogid92/dalbit-viewer/releases/latest">Releases</a>에서 <code style="font-family:ui-monospace,Consolas,monospace">DalbitViewer-1.3.5-win64.zip</code>을 받습니다.</li>
+    <li>원하는 폴더에 압축을 풉니다.</li>
+    <li><code style="font-family:ui-monospace,Consolas,monospace">DalbitViewer\DalbitViewer.exe</code>를 실행합니다.</li>
+  </ol>
+  <p style="font-size:14px;color:#6d7b8d;margin-top:18px">
+    SmartScreen 경고가 뜨면 <strong>추가 정보 → 실행</strong>을 누르세요.
+    이미지 더블클릭으로 열리게 하려면 설정 → 탐색기 연결 → 등록을 한 번 실행합니다.
+  </p>
+</section>
+
+<footer>
+  <p>
+    <a href="https://github.com/sogid92/dalbit-viewer">GitHub</a> ·
+    <a href="https://github.com/sogid92/dalbit-viewer/releases">Releases</a> ·
+    <a href="https://github.com/sogid92/dalbit-viewer/issues">이슈</a> ·
+    <a href="https://github.com/sogid92/dalbit-viewer/blob/main/README.en.md">English</a>
+  </p>
+  <p>달빛뷰어 (Dalbit Viewer) — 광고 없는 Windows 이미지 뷰어</p>
+</footer>
+
+</div>
+</body>
+</html>

@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://sogid92.github.io/dalbit-viewer/sitemap.xml
