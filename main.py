@@ -176,6 +176,8 @@ TRANSLATIONS = {
     "휴지통으로 보낸 항목이 없습니다.": "No items were moved to the Trash.",
     " %d개 실패.": " %d failed.",
     "일부 폴더를 이동하지 못했습니다": "Some folders could not be moved",
+    " %d개는 경로를 찾을 수 없어 목록에서 제거했습니다.":
+        " %d could not be found and were removed from the list.",
     "체크한 항목을 휴지통으로 이동": "Move Checked to Trash",
     "체크한 항목을 목록에서만 제거": "Remove Checked from List",
     "폴더 열기": "Open Folder",
@@ -219,6 +221,7 @@ TRANSLATIONS = {
     "느린 편 · 고화질 · 주변 16픽셀 참조": "Slower · high quality · samples 16 nearby pixels",
     "가장 느림 · 최고 화질 · 기본값": "Slowest · best quality · default",
     "애니메이션 프레임 바 표시 (하단 왼쪽)": "Show animation frame bar (bottom left)",
+    "GIF/WebP 애니메이션 프레임 바 표시 (하단 왼쪽)": "Show GIF/WebP animation frame bar (bottom left)",
     "%d/%d · 1회 재생": "%d/%d · once",
     "%d/%d · %d/%d회": "%d/%d · %d/%d plays",
     "%d/%d · 일시정지": "%d/%d · paused",
@@ -253,7 +256,20 @@ def detect_system_language():
 IMG_EXTS = {".bmp", ".jpg", ".jpeg", ".png", ".gif", ".webp", ".tiff", ".tif",
             ".ico", ".ppm", ".pgm", ".pnm", ".avif", ".jxl", ".dds", ".tga"}
 ARCHIVE_EXTS = {".zip", ".cbz"}
-VERSION = "1.3.3"  # EXE가 최신인지 확인용: EXE --version 으로 출력됨
+CACHE_BUDGET_BYTES = 256 * 1024 * 1024  # 디코드된 이미지 캐시 상한 (약 12MP 6장)
+VERSION = "1.3.4"  # EXE가 최신인지 확인용: EXE --version 으로 출력됨
+
+
+def archive_names(path):
+    # 압축 안의 항목 이름 목록.
+    with zipfile.ZipFile(path) as z:
+        return z.namelist()
+
+
+def archive_read(path, name):
+    # 압축 안의 파일 하나를 메모리로 읽는다. (압축을 풀어 디스크에 쓰지 않는다)
+    with zipfile.ZipFile(path) as z:
+        return z.read(name)
 
 
 def animation_play_count(im):
@@ -587,6 +603,22 @@ def nav_siblings(root, sort_mode="name_asc", kind=None):
     return [str(p.resolve()) for p in entries]
 
 
+def _win_set_pos(hwnd, insert_after, x, y, w, h, flags):
+    # argtypes 없이 부르면 HWND_TOPMOST(-1)가 32bit로 잘려 64bit Windows에서 실패한다.
+    try:
+        import ctypes
+        from ctypes import wintypes
+        u = ctypes.windll.user32
+        u.SetWindowPos.argtypes = [wintypes.HWND, wintypes.HWND, ctypes.c_int,
+                                   ctypes.c_int, ctypes.c_int, ctypes.c_int,
+                                   wintypes.UINT]
+        u.SetWindowPos.restype = wintypes.BOOL
+        return bool(u.SetWindowPos(hwnd, insert_after, int(x), int(y),
+                                   int(w), int(h), flags))
+    except Exception:
+        return False
+
+
 def deletion_block_reason(path):
     # 실제 삭제 전 안전 검사. 이유가 있으면 문자열, 허용이면 None.
     try:
@@ -721,6 +753,10 @@ class Viewer(tk.Tk):
             self._window_geometry = "%dx%d+%d+%d" % (
                 start_w, start_h, max(0, (sw - start_w) // 2), max(0, (sh - start_h) // 2))
         self.geometry(self._window_geometry)
+        # 지난번에 전체화면으로 껐다면 처음부터 화면 크기로 만든다.
+        # 작은 창이 잠깐 보였다가 커지는 깜빡임을 없앤다.
+        if self.settings.get("window_mode") == "fullscreen":
+            self.geometry("%dx%d+0+0" % (sw, sh))
         try:
             self.attributes("-topmost", False)
         except tk.TclError:
@@ -755,9 +791,12 @@ class Viewer(tk.Tk):
         self._anim_paused = False
         self._anim_bar_visible = False
         self._cache = {}
+        self._cache_bytes = 0
         self._drag = None
         self._last_error = None
         self._render_after = None
+        self._resize_redraw_after = None
+        self._zoom_base_mode = self.fit_mode
         self._fast_nav = False
         self._disp_size = (0, 0)
         self._need_center = False
@@ -872,7 +911,8 @@ class Viewer(tk.Tk):
                     self.iconbitmap(str(tmp))
                 self._window_icon_photo = ImageTk.PhotoImage(
                     Image.open(p).convert("RGBA"), master=self)
-                self.iconphoto(False, self._window_icon_photo)
+                # True = 이후에 만들어지는 설정/목록 창에도 같은 아이콘을 쓴다.
+                self.iconphoto(True, self._window_icon_photo)
                 return
             except Exception:
                 continue
@@ -934,9 +974,59 @@ class Viewer(tk.Tk):
 
     def _on_canvas_configure(self, event=None):
         if self.items:
-            self._redraw()
+            # 크기 변경 중에는 캔버스 그림 위치만 따라오게 하고,
+            # 이미지 재생성(_redraw)은 크기 변경이 멈춘 뒤 한 번만 한다.
+            # 매 프레임 다시 그리면 위쪽 탭/버튼까지 재배치되어 깜빡인다.
+            self._recenter_canvas_image()
+            self._schedule_resize_redraw()
         else:
             self._draw_welcome()
+
+    def _schedule_resize_redraw(self):
+        # 크기 변경 중에는 그리지 않고, 멈추고 나서 한 번만 그린다.
+        if getattr(self, "_resize_redraw_after", None) is not None:
+            try:
+                self.after_cancel(self._resize_redraw_after)
+            except Exception:
+                pass
+        try:
+            self._resize_redraw_after = self.after(120, self._run_resize_redraw)
+        except tk.TclError:
+            self._resize_redraw_after = None
+
+    def _run_resize_redraw(self):
+        self._resize_redraw_after = None
+        fx, fy = self._view_center_frac()
+        self._redraw()
+        self._apply_view_center_frac(fx, fy)
+
+    def _cancel_resize_redraw(self):
+        if getattr(self, "_resize_redraw_after", None) is not None:
+            try:
+                self.after_cancel(self._resize_redraw_after)
+            except Exception:
+                pass
+            self._resize_redraw_after = None
+
+    def _recenter_canvas_image(self):
+        # 리사이즈 중 다시 그리기 전까지, 새 캔버스 크기 기준으로 그림과
+        # 스크롤 영역만 맞춘다. 화면에 보이는 위치(xview/yview)는 건드리지 않는다.
+        # 여기서 정렬을 다시 잡으면 리사이즈할 때마다 중앙/좌상단으로 튄다.
+        if self._canvas_image_id is None:
+            return
+        dw, dh = self._disp_size
+        if dw <= 0 or dh <= 0:
+            return
+        try:
+            cw = self.canvas.winfo_width()
+            ch = self.canvas.winfo_height()
+            if cw <= 1 or ch <= 1:
+                return
+            sw, sh = max(cw, dw), max(ch, dh)
+            self.canvas.coords(self._canvas_image_id, sw // 2, sh // 2)
+            self.canvas.config(scrollregion=(0, 0, sw, sh))
+        except tk.TclError:
+            pass
 
     def destroy(self):
         # 종료 시 타이머/토스트 정리
@@ -944,6 +1034,7 @@ class Viewer(tk.Tk):
             self._destroyed = True
             self._save_window_state()
             self._cancel_scheduled_redraw()
+            self._cancel_resize_redraw()
             self._stop_animation()
             self._hide_tooltip()
             self._close_file_menu()
@@ -1106,10 +1197,11 @@ class Viewer(tk.Tk):
         else:
             self._enter_fullscreen()
 
-    def _enter_fullscreen(self):
+    def _enter_fullscreen(self, capture=True):
         if self._is_fullscreen():
             return
-        if not self._maximized:
+        if capture and not self._maximized:
+            # 돌아올 크기. 시작할 때부터 전체화면이면 저장된 크기를 그대로 둔다.
             try:
                 self._window_geometry = self.geometry()
             except tk.TclError:
@@ -1170,6 +1262,9 @@ class Viewer(tk.Tk):
                                    max(0, (sh - h) // 2))
         try:
             self.geometry(geo)
+            # 위치/크기가 실제 창에 반영되기 전에 Win32 호출이 끼어들면
+            # 이전 위치(0,0)가 그대로 남는다. 여기서 한 번 강제로 적용한다.
+            self.update_idletasks()
         except tk.TclError:
             pass
 
@@ -1214,7 +1309,8 @@ class Viewer(tk.Tk):
         # 지난번에 전체화면/최대화로 껐으면 같은 상태로 시작한다.
         mode = self.settings.get("window_mode", "normal")
         if mode == "fullscreen":
-            self._enter_fullscreen()
+            # 처음부터 전체화면 크기로 뜨므로, 돌아올 크기는 저장값을 그대로 쓴다.
+            self._enter_fullscreen(capture=False)
         elif mode == "maximized":
             self._window_maximize()
 
@@ -1264,16 +1360,8 @@ class Viewer(tk.Tk):
         hwnd = self._win_hwnd()
         if not hwnd:
             return
-        try:
-            import ctypes
-            SWP_SHOWWINDOW = 0x0040
-            HWND_TOPMOST = -1
-            HWND_TOP = 0
-            ctypes.windll.user32.SetWindowPos(
-                hwnd, HWND_TOPMOST if topmost else HWND_TOP,
-                int(x), int(y), int(w), int(h), SWP_SHOWWINDOW)
-        except Exception:
-            pass
+        SWP_SHOWWINDOW = 0x0040
+        _win_set_pos(hwnd, -1 if topmost else 0, x, y, w, h, SWP_SHOWWINDOW)
 
     def _win_set_topmost(self, topmost):
         if os.name != "nt":
@@ -1285,16 +1373,11 @@ class Viewer(tk.Tk):
         hwnd = self._win_hwnd()
         if not hwnd:
             return
-        try:
-            import ctypes
-            SWP_NOMOVE = 0x0002
-            SWP_NOSIZE = 0x0001
-            SWP_NOACTIVATE = 0x0010
-            ctypes.windll.user32.SetWindowPos(
-                hwnd, -1 if topmost else -2, 0, 0, 0, 0,
-                SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE)
-        except Exception:
-            pass
+        SWP_NOMOVE = 0x0002
+        SWP_NOSIZE = 0x0001
+        SWP_NOACTIVATE = 0x0010
+        _win_set_pos(hwnd, -1 if topmost else -2, 0, 0, 0, 0,
+                     SWP_NOMOVE | SWP_NOSIZE | SWP_NOACTIVATE)
 
     def _win_minimize(self):
         if os.name == "nt":
@@ -1338,6 +1421,21 @@ class Viewer(tk.Tk):
         hover = "#c42b1c" if danger else CHROME_HOVER
         b.bind("<Enter>", lambda e: b.configure(bg=hover))
         b.bind("<Leave>", lambda e: b.configure(bg=CHROME_BG))
+
+        # 창 위쪽 가장자리에서 크기 조절을 시작할 때 버튼(특히 X)이 같이
+        # 눌려 창이 닫히는 것을 막는다. 위젯 바인딩이 클래스 바인딩보다 먼저 실행된다.
+        def on_press(e):
+            if self._resize_start(e) == "break":
+                return "break"
+
+        def on_release(e):
+            if self._resize_origin is not None:
+                self._resize_end(e)
+                return "break"
+
+        b.bind("<ButtonPress-1>", on_press)
+        b.bind("<B1-Motion>", self._resize_move)
+        b.bind("<ButtonRelease-1>", on_release)
         return b
 
     def _build_chrome(self):
@@ -2053,7 +2151,8 @@ class Viewer(tk.Tk):
             self.update_idletasks()
             p = filedialog.askopenfilename(
                 title=tr("압축파일 열기 (풀지 않고 보기)"),
-                filetypes=[(tr("압축파일"), "*.zip *.cbz"), (tr("모든 파일"), "*.*")])
+                filetypes=[(tr("압축파일"), "*.zip *.cbz"),
+                           (tr("모든 파일"), "*.*")])
         finally:
             try:
                 self.deiconify()
@@ -2159,7 +2258,7 @@ class Viewer(tk.Tk):
         # 애니메이션 프레임 바
         anim_bar_var = tk.BooleanVar(value=bool(cur.get("show_anim_bar", True)))
         anim_bar_check = ttk.Checkbutton(
-            dlg, text=tr("애니메이션 프레임 바 표시 (하단 왼쪽)"),
+            dlg, text=tr("GIF/WebP 애니메이션 프레임 바 표시 (하단 왼쪽)"),
             variable=anim_bar_var)
         anim_bar_check.pack(anchor="w", padx=14, pady=(10, 0))
         # 처음/끝 동작 + 다음 폴더 순서 (가로 배치)
@@ -2263,7 +2362,6 @@ class Viewer(tk.Tk):
                     self._fit_var.set(new["fit_mode"])
                 except tk.TclError:
                     pass
-                self._need_center = True
             bgc = BG_COLORS.get(new["bg_color"], "#000000")
             try:
                 self.configure(bg=bgc)
@@ -2577,6 +2675,10 @@ class Viewer(tk.Tk):
                     v.set(value)
                 sync_state()
 
+            def select_all():
+                select_all_var.set(True)
+                toggle_all()
+
             def on_wheel(event):
                 try:
                     canvas.yview_scroll(int(-event.delta / 120), "units")
@@ -2633,8 +2735,13 @@ class Viewer(tk.Tk):
                 if not messagebox.askyesno(tr("휴지통으로 이동"), msg, parent=dlg):
                     return
                 deleted = []
+                gone = []
                 errors = []
                 for p in targets:
+                    # 이미 없는 경로는 지울 수 없으니 목록에서만 제거한다.
+                    if not Path(p).exists():
+                        gone.append(p)
+                        continue
                     reason = deletion_block_reason(p)
                     if reason:
                         errors.append("%s — %s" % (p, reason))
@@ -2644,7 +2751,14 @@ class Viewer(tk.Tk):
                         deleted.append(p)
                     else:
                         log_error("recycle failed: %r : %s" % (p, err))
-                        errors.append("%s — %s" % (p, err))
+                        if not Path(p).exists():
+                            gone.append(p)
+                        else:
+                            errors.append("%s — %s" % (p, err))
+                if gone:
+                    prune_viewed_folders(gone)
+                    if any(self._current_view_is_under(p) for p in gone):
+                        self._clear_view()
                 if deleted:
                     prune_viewed_folders(deleted)
                     if any(self._current_view_is_under(p) for p in deleted):
@@ -2652,6 +2766,8 @@ class Viewer(tk.Tk):
                 rebuild()
                 msg = (tr("%d개를 휴지통으로 보냈습니다.") % len(deleted)
                        if deleted else tr("휴지통으로 보낸 항목이 없습니다."))
+                if gone:
+                    msg += tr(" %d개는 경로를 찾을 수 없어 목록에서 제거했습니다.") % len(gone)
                 if errors:
                     msg += tr(" %d개 실패.") % len(errors)
                 status_var.set(msg)
@@ -2672,6 +2788,10 @@ class Viewer(tk.Tk):
             ttk.Button(btns, text=tr("닫기"), command=dlg.destroy).pack(side="right")
 
             dlg.bind("<Escape>", lambda e: dlg.destroy())
+            dlg.bind("<Control-a>", lambda e: (select_all(), "break")[1])
+            dlg.bind("<Control-A>", lambda e: (select_all(), "break")[1])
+            # Delete 키 = 체크한 항목을 휴지통으로 이동
+            dlg.bind("<Delete>", lambda e: (delete_checked(), "break")[1])
             rebuild()
             dlg.focus_set()
             dlg.wait_window(dlg)
@@ -2699,6 +2819,7 @@ class Viewer(tk.Tk):
         self._clear_edge_armed()
         self._stop_animation()
         self._hide_bottom_bar()
+        self._cache_bytes = 0
         try:
             self.canvas.delete("all")
             self.canvas.configure(scrollregion=(0, 0, 0, 0))
@@ -2777,6 +2898,8 @@ class Viewer(tk.Tk):
             if not files:
                 self._last_error = tr("폴더 안에 표시할 이미지가 없습니다.")
                 return False
+            self._cache.clear()  # 캐시 키가 목록 인덱스라 목록이 바뀌면 반드시 비운다
+            self._cache_bytes = 0
             self.items = [{"name": Path(f).name, "path": f, "arc": None, "arc_name": None}
                           for f in files]
             # 첫 장만 확인 (속도: 시작 시 5장까지 읽던 것을 1장으로 줄임)
@@ -2799,13 +2922,15 @@ class Viewer(tk.Tk):
             return True
         elif p.suffix.lower() in ARCHIVE_EXTS:
             try:
-                with zipfile.ZipFile(p) as z:
-                    names = [n for n in z.namelist()
-                             if Path(n).suffix.lower() in IMG_EXTS and not n.endswith("/")]
+                names = archive_names(str(p))
+                names = [n for n in names
+                         if Path(n).suffix.lower() in IMG_EXTS and not n.endswith("/")]
                 names.sort(key=natural_key)
                 if not names:
                     self._last_error = tr("압축파일 안에 표시할 이미지가 없습니다.")
                     return False
+                self._cache.clear()  # 캐시 키가 목록 인덱스라 목록이 바뀌면 반드시 비운다
+                self._cache_bytes = 0
                 self.items = [{"name": Path(n).name, "path": None, "arc": str(p), "arc_name": n}
                               for n in names]
             except Exception as e:
@@ -2840,6 +2965,8 @@ class Viewer(tk.Tk):
                 log_error("list failed: %r : %s" % (target, e))
                 return False
             files.sort(key=lambda x: natural_key(Path(x).name))
+            self._cache.clear()  # 캐시 키가 목록 인덱스라 목록이 바뀌면 반드시 비운다
+            self._cache_bytes = 0
             self.items = [{"name": Path(f).name, "path": f, "arc": None, "arc_name": None}
                           for f in files]
             start = next((i for i, it in enumerate(self.items)
@@ -2862,14 +2989,20 @@ class Viewer(tk.Tk):
             return False
 
     def _reset_view(self):
-        self._cache.clear()
+        # 캐시는 여기서 비우지 않는다. 사진을 넘길 때마다 비우면
+        # 방금 본 사진도 매번 다시 디코드해 느려진다(12MP 기준 160ms).
+        # 새 폴더/압축파일을 열 때만 _load_path에서 비운다.
         self._stop_animation()
         self.zoom = 1.0
-        # 줌 상태는 이미지마다 초기화하고, 맞춤 모드는 유지한다.
-        # 새 폴더를 열 때는 _load_path에서 기본 맞춤으로 다시 설정한다.
+        # 줌으로 들어왔으면 줌 직전 모드(너비/원본/맞춤)로 돌아간다.
+        # 그래야 너비/원본에서 줌만 해 본 상태가 사진을 넘길 때 유지된다.
         if self.fit_mode == "zoom":
-            self.fit_mode = self.settings.get("fit_mode", "fit")
+            self.fit_mode = getattr(self, "_zoom_base_mode",
+                                    self.settings.get("fit_mode", "fit"))
+        self._zoom_base_mode = self.fit_mode
         self._slider_target = None
+        # 새 사진이 화면에 다 들어오면 가운데, 잘리면 좌상단부터 보여준다.
+        # (판단은 실제 크기를 그린 뒤 _redraw에서 한다)
         self._need_center = True
         self._clear_edge_armed()
         try:
@@ -2885,8 +3018,7 @@ class Viewer(tk.Tk):
         it = self.items[idx]
         try:
             if it["arc"]:
-                with zipfile.ZipFile(it["arc"]) as z:
-                    data = z.read(it["arc_name"])
+                data = archive_read(it["arc"], it["arc_name"])
                 im = Image.open(io.BytesIO(data))
             else:
                 im = Image.open(it["path"])
@@ -2902,17 +3034,29 @@ class Viewer(tk.Tk):
                 im = ImageOps.exif_transpose(im)
                 if im.mode not in ("RGB", "RGBA", "L"):
                     im = im.convert("RGBA" if "A" in im.getbands() else "RGB")
-            if len(self._cache) > 10:
-                # 전체 비우는 대신 가장 오래된 것 1개만 삭제 (메모리·히트율 균형)
-                del self._cache[next(iter(self._cache))]
+            # 장수 제한만으로는 12MP 사진 11장 = 400MB까지 커진다.
+            # 장수·바이트 예산을 함께 넘지 않도록 오래된 것부터 버린다.
             self._cache[idx] = im
+            self._cache_bytes += im.width * im.height * len(im.getbands())
+            self._trim_cache()
             return im
         except Exception as e:
             self._last_error = "%s: %s" % (it["name"], e)
             return None
 
+    def _trim_cache(self):
+        # 장수(10장)와 바이트 예산(256MB) 중 하나라도 넘으면 오래된 것부터 버린다.
+        # 방금 넣은 항목(마지막 키)은 남긴다.
+        while len(self._cache) > 1 and (
+                len(self._cache) > 10
+                or self._cache_bytes > CACHE_BUDGET_BYTES):
+            key = next(iter(self._cache))
+            old = self._cache.pop(key)
+            self._cache_bytes -= old.width * old.height * len(old.getbands())
+
     def _redraw(self):
         self._cancel_scheduled_redraw()
+        self._cancel_resize_redraw()
         self._stop_animation()
         if not self.items or self.index < 0:
             self._draw_welcome()
@@ -2949,6 +3093,7 @@ class Viewer(tk.Tk):
         else:  # zoom
             scale = self.zoom
         scale = max(0.01, min(scale, 50))
+        self._fit_scale = scale
         nw = max(1, int(frame.width * scale))
         nh = max(1, int(frame.height * scale))
         # 보간기법이 실제로 적용되는 지점: Pillow resize의 resample 인자
@@ -2957,23 +3102,37 @@ class Viewer(tk.Tk):
             filt = Image.NEAREST
         else:
             filt = INTERPOLATIONS[self.interp_idx][1]
+        # 큰 사진을 크게 줄일 때는 정수배로 먼저 줄인 뒤 리샘플한다.
+        # 결과 차이는 2/255 수준이고, LANCZOS 단독보다 4배 가깝다(12MP: 102→24ms).
+        shrink = max(frame.width // nw, frame.height // nh) if nw and nh else 1
+        if shrink >= 2 and not self._fast_nav:
+            frame = frame.reduce(shrink)
         disp = frame.resize((nw, nh), filt)
         self._disp_size = (disp.width, disp.height)
         try:
             self._photo = ImageTk.PhotoImage(disp, master=self.canvas)
             self.canvas.delete("all")
-            # 가운데 정렬. 확대되어 화면보다 크면 스크롤 영역으로 드래그 이동 가능
-            x = max(cw // 2, disp.width // 2)
-            y = max(ch // 2, disp.height // 2)
-            self._canvas_image_id = self.canvas.create_image(x, y, image=self._photo,
-                                                             anchor="center")
-            self.canvas.config(scrollregion=(0, 0, max(cw, disp.width), max(ch, disp.height)))
+            # 그림은 항상 스크롤 영역의 가운데에 둔다. 화면에 보이는 위치는
+            # 아래에서 xview/yview로 정한다 (줌 중에는 현재 위치 유지).
+            sw = max(cw, disp.width)
+            sh = max(ch, disp.height)
+            self._canvas_image_id = self.canvas.create_image(
+                sw // 2, sh // 2, image=self._photo, anchor="center")
+            self.canvas.config(scrollregion=(0, 0, sw, sh))
         except tk.TclError:
             return
-        # 새 이미지/맞춤 변경 시에는 가운데로, 줌 시에는 현재 위치 유지
+        # 새 사진으로 넘어왔을 때만 정렬을 새로 잡는다. 줌/창크기 변경에서는
+        # 보던 위치를 유지해야 중앙↔좌상단으로 튀지 않는다.
         if self._need_center:
             self._need_center = False
-            self._center_view()
+            if self._image_overflows(disp.width, disp.height):
+                try:
+                    self.canvas.xview_moveto(0)
+                    self.canvas.yview_moveto(0)
+                except tk.TclError:
+                    pass
+            else:
+                self._center_view()
         # 슬라이드바 위치/라벨 동기화
         self._update_slider()
         # 키를 꾹 누르는 동안 이벤트에 밀려 캔버스가 늦게 그려지는 것을 방지
@@ -2990,6 +3149,17 @@ class Viewer(tk.Tk):
             self._show_anim_bar()
 
     # ---------- 애니메이션 재생 ----------
+    def _image_overflows(self, w, h):
+        # 그림이 캔버스보다 커서 잘리는지 여부. 잘릴 때만 좌상단 기준으로 본다.
+        try:
+            cw = self.canvas.winfo_width()
+            ch = self.canvas.winfo_height()
+        except tk.TclError:
+            return False
+        if cw <= 1 or ch <= 1:
+            return False
+        return w > cw + 1 or h > ch + 1
+
     def _stop_animation(self, hide_bar=True):
         if getattr(self, "_anim_after", None) is not None:
             try:
@@ -3219,6 +3389,39 @@ class Viewer(tk.Tk):
             frame, total, min(self._anim_loops_done + 1, self._anim_plays),
             self._anim_plays)
 
+    def _view_center_frac(self):
+        # 지금 화면 한가운데가 이미지의 어느 지점인지 (0~1, 이미지 기준).
+        # 줌 전후로 같은 지점을 보게 하려고 쓴다.
+        try:
+            cw, ch = self.canvas.winfo_width(), self.canvas.winfo_height()
+            dw, dh = self._disp_size
+            if cw <= 1 or ch <= 1 or dw <= 0 or dh <= 0:
+                return 0.5, 0.5
+            sr_w = max(cw, dw)
+            sr_h = max(ch, dh)
+            cx = self.canvas.xview()[0] * sr_w + cw / 2.0
+            cy = self.canvas.yview()[0] * sr_h + ch / 2.0
+            return ((cx - (sr_w - dw) / 2.0) / dw,
+                    (cy - (sr_h - dh) / 2.0) / dh)
+        except tk.TclError:
+            return 0.5, 0.5
+
+    def _apply_view_center_frac(self, fx, fy):
+        # 이미지의 (fx, fy) 지점이 화면 한가운데 오도록 스크롤한다.
+        try:
+            cw, ch = self.canvas.winfo_width(), self.canvas.winfo_height()
+            dw, dh = self._disp_size
+            if cw <= 1 or ch <= 1 or dw <= 0 or dh <= 0:
+                return
+            sr_w = max(cw, dw)
+            sr_h = max(ch, dh)
+            cx = (sr_w - dw) / 2.0 + fx * dw
+            cy = (sr_h - dh) / 2.0 + fy * dh
+            self.canvas.xview_moveto((cx - cw / 2.0) / sr_w)
+            self.canvas.yview_moveto((cy - ch / 2.0) / sr_h)
+        except tk.TclError:
+            pass
+
     def _center_view(self):
         # 스크롤 가능한 경우 뷰를 가운데로 (새 이미지/맞춤 변경 시)
         try:
@@ -3329,7 +3532,6 @@ class Viewer(tk.Tk):
             return
         self.index = max(0, min(len(self.items) - 1, idx))
         self._reset_view()
-        self._need_center = True
         self._schedule_redraw()
         self._hide_cursor_now()
 
@@ -3493,7 +3695,9 @@ class Viewer(tk.Tk):
             # stop: 아무것도 안 함
 
     def set_fit(self, mode):
+        fx, fy = self._view_center_frac()
         self.fit_mode = mode
+        self._zoom_base_mode = mode
         if mode == "original":
             self.zoom = 1.0
         try:
@@ -3501,8 +3705,10 @@ class Viewer(tk.Tk):
                 self._fit_var.set(mode)
         except tk.TclError:
             pass
-        self._need_center = True
+        # 정렬은 새 사진으로 넘어갈 때만 다시 잡는다 (요청: 좌상단은 이미지 전환 시에만).
+        # 같은 사진에서 보기 모드만 바꿀 때는 보던 지점을 유지한다.
         self._redraw()
+        self._apply_view_center_frac(fx, fy)
         self._hide_cursor_now()
 
     def _toggle_fit_original(self):
@@ -3551,10 +3757,19 @@ class Viewer(tk.Tk):
             self._zoom_step(1.15 if e.delta > 0 else 1 / 1.15)
 
     def _zoom_step(self, factor):
+        base = self.fit_mode
+        fx, fy = self._view_center_frac()
+        if base in ("fit", "width", "original"):
+            # 줌 직전 모드와 그 모드의 실제 배율에서 시작한다.
+            # (너비 맞춤으로 이미 확대된 사진을 줌아웃하면 그 배율부터 줄어야 한다)
+            self._zoom_base_mode = base
+            self.zoom = getattr(self, "_fit_scale", 1.0)
         self.fit_mode = "zoom"
         self.zoom = max(0.05, min(self.zoom * factor, 20.0))
         self._clear_edge_armed()
         self._redraw()
+        # 줌은 보던 지점을 기준으로. 배율이 바뀌어도 중앙/좌상단으로 튀지 않는다.
+        self._apply_view_center_frac(fx, fy)
         self._hide_cursor_now()
 
     def _pan_start(self, e):
