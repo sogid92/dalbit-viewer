@@ -257,7 +257,7 @@ IMG_EXTS = {".bmp", ".jpg", ".jpeg", ".png", ".gif", ".webp", ".tiff", ".tif",
             ".ico", ".ppm", ".pgm", ".pnm", ".avif", ".jxl", ".dds", ".tga"}
 ARCHIVE_EXTS = {".zip", ".cbz"}
 CACHE_BUDGET_BYTES = 256 * 1024 * 1024  # 디코드된 이미지 캐시 상한 (약 12MP 6장)
-VERSION = "1.3.4"  # EXE가 최신인지 확인용: EXE --version 으로 출력됨
+VERSION = "1.3.5"  # EXE가 최신인지 확인용: EXE --version 으로 출력됨
 
 
 def archive_names(path):
@@ -3650,7 +3650,9 @@ class Viewer(tk.Tk):
             # 이동 범위(_nav_root) 밖으로는 절대 안 나감. 범위를 다 보면 여기서 멈춤.
             if self._load_path(target, from_adjacent=True):
                 # 끝까지 본 항목만 목록에 남긴다. 다음 항목 로드가 성공한 뒤 기록.
-                remember_viewed_folder(leaving)
+                # 앞으로 이동할 때만 기록하고, 이전으로 되돌아갈 때는 남기지 않는다.
+                if direction > 0:
+                    remember_viewed_folder(leaving)
                 # 다음 폴더로 이동했으면 첫 이미지부터 (이전 폴더는 마지막 이미지부터)
                 if direction < 0:
                     self.goto(len(self.items) - 1)
