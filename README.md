@@ -1,16 +1,18 @@
 <p align="center">
-  <img src="icon.png" width="128" alt="Dalbit Viewer icon">
+  <img src="icon.png" width="128" alt="달빛뷰어 Dalbit Viewer - Windows 무료 이미지 뷰어 아이콘">
 </p>
 
 **English:** [README.en.md](README.en.md)
 
 # 달빛뷰어 (Dalbit Viewer)
 
+**Windows용 무료 이미지 뷰어. 광고 없음, 설치 없음, 약 14MB.**
+
+JPG·PNG·GIF·WebP·AVIF·TIFF·BMP 이미지를 열 수 있고, 만화책 압축파일인 **CBZ·ZIP을 풀지 않고 바로** 볼 수 있는 초경량 이미지 뷰어입니다. GIF/WebP 애니메이션 재생, 전체화면 감상, 폴더와 압축파일 자동 넘김을 지원합니다.
+
 이미지를 보는 시간, 방해받지 않도록.
 
 광고도, 설치도 필요 없습니다. UI는 시야를 가리지 않으며, 이미지를 여는 순간부터 보는 일에만 집중하세요.
-
-약 14MB의 가벼운 Windows용 이미지 뷰어.
 
 ## 주요 특징
 
@@ -134,3 +136,8 @@ Windows 정책상 프로그램이 기본 앱을 직접 바꿀 수는 없어서, 
 ## 파일 위치
 
 `settings.json`, `viewed_folders.json`은 실행 파일(또는 `main.py`) 옆에 저장됩니다. 이미지 로딩에 실패하면 같은 위치의 `viewer_error.log`에 원인이 기록됩니다.
+
+## 검색 키워드
+
+달빛뷰어, Dalbit Viewer, Windows 이미지 뷰어, 무료 이미지 뷰어, 광고 없는 이미지 뷰어, 만화책 뷰어, 만화 보는 프로그램, CBZ 뷰어, CBR 뷰어, ZIP 이미지 뷰어, 압축파일 이미지 뷰어, GIF 뷰어, WebP 뷰어, AVIF 뷰어, 사진 뷰어, 이미지 브라우저, portable image viewer, comic book reader, lightweight image viewer
+

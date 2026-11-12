@@ -1,14 +1,16 @@
 <p align="center">
-  <img src="icon.png" width="128" alt="Dalbit Viewer icon">
+  <img src="icon.png" width="128" alt="Dalbit Viewer - free lightweight image viewer for Windows">
 </p>
 
 # Dalbit Viewer
 
+**A free image viewer for Windows. No ads, no installation, about 14MB.**
+
+Open JPG, PNG, GIF, WebP, AVIF, TIFF and BMP images, and read comic book archives (**CBZ/ZIP**) without extracting them. Animated GIF/WebP playback, fullscreen viewing, and automatic folder/archive stepping.
+
 Undisturbed time with your images.
 
 No ads, no installation. The UI never blocks your view — from the moment you open an image, focus only on looking.
-
-A lightweight Windows image viewer, about 14MB.
 
 **한국어:** [README.md](README.md)
 
@@ -123,6 +125,10 @@ Open with the Settings button in the top bar or `Ctrl+S`. Changes apply and save
 - **Bottom slider**: Auto / always / never
 - **Start/end behavior**: Loop / stop / go to next item (folder or archive)
 - **Next item order**: Only enabled with "go to next item"
+
+## Search keywords
+
+Dalbit Viewer, free image viewer, Windows image viewer, lightweight image viewer, comic book reader, CBZ viewer, CBR viewer, ZIP image viewer, archive image viewer, GIF viewer, WebP viewer, AVIF viewer, photo viewer, image browser, portable image viewer, no ads, Korean image viewer
 
 ## Supported formats
 
